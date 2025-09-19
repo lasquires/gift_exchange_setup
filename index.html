@@ -171,12 +171,20 @@ Aarav, Diya, Kavya"></textarea>
       const now=Date.now();
       if (!t0 || now - t0 > 2500){ seq=[]; t0=now; }
       seq.push(code);
-      // keep only last 3
       if (seq.length>3) seq.shift();
       if (seq.join(',') === 'I,R,I'){ setForceUI(true); seq=[]; t0=0; }
     }
     intraInput.addEventListener('change', ()=> pushSeq('I'));
     recipInput.addEventListener('change', ()=> pushSeq('R'));
+
+    // ---------- Typing guard ----------
+    function isTypingContext(el){
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      const tag = (el.tagName || '').toUpperCase();
+      if (['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(tag)) return true;
+      return !!(el.closest && el.closest('input, textarea, select, button, [contenteditable="true"]'));
+    }
 
     // ---------- Constants ----------
     const TAU = Math.PI * 2;
@@ -196,7 +204,6 @@ Aarav, Diya, Kavya"></textarea>
 
     // ---------- Parsing helpers ----------
     const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:|\s+to\s+)\s*(.+)$/;
-    const TWOSP_RX = /^(.+?)\s{2,}(.+)$/;
 
     function parseAvoidPairs(text){
       const lines = String(text).split(/\r?\n/);
@@ -678,9 +685,10 @@ Aarav, Diya, Kavya"></textarea>
       }
     }
 
-    // Space key
+    // Space key (now respects typing contexts)
     window.addEventListener('keydown', (ev)=>{
       if (ev.code !== 'Space') return;
+      if (isTypingContext(ev.target)) return; // allow spaces in inputs/textarea
       ev.preventDefault();
       advanceSpinFlow();
     });
@@ -775,8 +783,11 @@ Aarav, Diya, Kavya"></textarea>
       fsToggleBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
     });
     fsToggleBtn.addEventListener('click', toggleFullscreen);
+
+    // KeyF for fullscreen, but don't steal focus while typing
     window.addEventListener('keydown', (e)=>{
       if (spinnerArea.classList.contains('hidden')) return;
+      if (isTypingContext(e.target)) return;
       if (e.code === 'KeyF' && !e.ctrlKey && !e.altKey && !e.shiftKey){
         e.preventDefault();
         toggleFullscreen();
