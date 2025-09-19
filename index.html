@@ -51,7 +51,7 @@
     .button.ghost, button.ghost { background: #fff; color: var(--ink); border: 1px solid #ddd; }
     .canvas-wrap { display:grid; grid-template-columns:1fr; grid-template-rows:minmax(320px,65vh) auto; gap:.5rem; padding:0 clamp(1rem,4vw,2rem) 1.25rem; }
     canvas { width:100%; height:100%; background: var(--accent); border-radius:1.2rem; box-shadow:0 10px 30px rgba(0,0,0,.08) inset; }
-    .hint { font-size:.95rem; color:#444; background:#fff; border:1px dashed #ddd; padding:.6rem .8rem; border-radius:.7rem; }
+    .hint { font-size:.95rem; color:#444; background:#fff; border:1px dashed #ddd; padding:.6rem .8rem; border-radius:.7rem; user-select:none; }
     .hidden { display:none !important; }
     .grow { flex:1; }
     .uploadRow { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
@@ -64,7 +64,7 @@
     /* Fullscreen: show only the canvas area */
     .canvas-wrap:fullscreen { padding: 0; grid-template-rows: 1fr; }
     .canvas-wrap:fullscreen canvas { border-radius: 0; }
-    .canvas-wrap:fullscreen .hint { display: none; }  /* hide the x’d-out text */
+    .canvas-wrap:fullscreen .hint { display: none; }
   </style>
 </head>
 <body>
@@ -76,10 +76,10 @@
       <input id="occasion" type="text" placeholder="Christmas 2025" />
       <span class="chk"><input id="noIntra" type="checkbox" checked><label for="noIntra">No Intrafamily</label></span>
       <span class="chk"><input id="noRecip" type="checkbox" checked><label for="noRecip">No Reciprocal</label></span>
-      <!-- Removed: No Repeat Pairs checkbox -->
+      <!-- No-Repeat checkbox removed; avoid list implies no-repeat -->
     </div>
 
-    <!-- Avoid/No-Repeat importer (visible) -->
+    <!-- Avoid/No-Repeat importer -->
     <div class="uploadRow">
       <input id="avoidFile" type="file" accept=".txt,.csv" class="hidden" multiple />
       <button id="uploadAvoid" class="ghost">Import Avoid Pairs</button>
@@ -115,7 +115,7 @@ Patel: Aarav, Diya, Kavya"></textarea>
     <button id="resetAll" class="ghost">Reset</button>
   </div>
 
-  <section class="canvas-wrap hidden" id="spinnerArea">
+  <section class="canvas-wrap hidden" id="spinnerArea" aria-label="Spin area (tap / click / press space)">
     <canvas id="wheel"></canvas>
     <div class="hint" id="hint"></div>
   </section>
@@ -551,13 +551,13 @@ Patel: Aarav, Diya, Kavya"></textarea>
       if (state===STATE_POWER) drawPowerBar(cx, Math.floor(wheelCanvas.height*0.22));
 
       if (state===STATE_WAIT){
-        hintEl.textContent = 'Ready. Press SPACE to pick & open the power bar.';
+        hintEl.textContent = 'Ready. Tap / Click / Space to pick & open the power bar.';
       } else if (state===STATE_POWER){
-        hintEl.textContent = `Set power: +${powerVal}. Press SPACE to lock & spin.`;
+        hintEl.textContent = `Set power: +${powerVal}. Tap / Click / Space to lock & spin.`;
       } else if (state===STATE_SPIN){
-        hintEl.textContent = 'Spinning… Press SPACE to force-stop.';
+        hintEl.textContent = 'Spinning… Tap / Click / Space to force-stop.';
       } else if (state===STATE_RESULT){
-        hintEl.textContent = 'Result shown. Press SPACE to open power for the next pair.';
+        hintEl.textContent = 'Result shown. Tap / Click / Space for the next pair.';
         if (giver && chosenReceiver){
           const note = `${giver} \u2192 ${chosenReceiver}`;
           const noteFont = Math.max(16, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.06));
@@ -614,12 +614,9 @@ Patel: Aarav, Diya, Kavya"></textarea>
       layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height); render();
     }
 
-    // ---------- Controls ----------
-    window.addEventListener('keydown', (ev)=>{
+    // ---------- Advance flow (Space / Click / Tap) ----------
+    function advanceSpinFlow(){
       if (spinnerArea.classList.contains('hidden')) return;
-      if (ev.code!=='Space') return;
-      ev.preventDefault();
-
       ensureAudio();
 
       if (state===STATE_WAIT){
@@ -656,7 +653,26 @@ Patel: Aarav, Diya, Kavya"></textarea>
         pendingReset = true;
         lastResultIndex = iPair;
       }
+    }
+
+    // Space key
+    window.addEventListener('keydown', (ev)=>{
+      if (ev.code !== 'Space') return;
+      ev.preventDefault();
+      advanceSpinFlow();
     });
+
+    // Click / Tap inside the spinner area (but ignore clicks on controls outside it)
+    function handlePointerAdvance(e){
+      // only react if spinner is visible and the click is inside spinnerArea
+      if (spinnerArea.classList.contains('hidden')) return;
+      // ignore if selecting text etc.
+      e.preventDefault();
+      e.stopPropagation();
+      advanceSpinFlow();
+    }
+    spinnerArea.addEventListener('click', handlePointerAdvance);
+    spinnerArea.addEventListener('touchstart', handlePointerAdvance, {passive:false});
 
     function spinWithPower(bonus){
       const n = Math.max(1, receivers.length);
