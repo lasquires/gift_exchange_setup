@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Giver → Receiver Rigged Wheel (HTML Port)</title>
+  <style>
+    :root {
+      --bg: #f7f7f7;
+      --ink: #222;
+      --accent: #6f95ae;
+      --danger: #d33;
+      --pointer: #ff6b6b;
+      --hud: #111;
+
+      /* Power bar */
+      --barTrack: #e8ecf5;
+      --barEdge: #3cc96b;
+      --barMid:  #ff4d4d;
+      --barDotShadow: rgba(0,0,0,.15);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+    }
+    header {
+      padding: 1rem clamp(1rem, 4vw, 2rem);
+      border-bottom: 1px solid #ddd;
+      background: #fff8;
+      position: sticky; top: 0; backdrop-filter: blur(6px);
+    }
+    h1 { margin: 0 0 .5rem 0; font-size: clamp(1.25rem, 2.2vw, 1.75rem); }
+    .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+    label { font-weight: 600; }
+    input[type="text"], textarea.members {
+      padding: .8rem 1rem; border: 1px solid #cfd4dc; border-radius: .75rem; background: #fff;
+      flex: 1 1 260px; min-width: 260px; outline: none; box-shadow: 0 1px 0 rgba(0,0,0,.02);
+      transition: box-shadow .15s ease, border-color .15s ease; font-size: 0.98rem; line-height: 1.4;
+    }
+    input[type="text"]:focus, textarea.members:focus {
+      border-color: #a7b7c6; box-shadow: 0 0 0 3px rgba(111,149,174,.15);
+    }
+    .chk { display: inline-flex; gap: .45rem; align-items: center; padding: .25rem .5rem; }
+    .families { padding: 1rem clamp(1rem, 4vw, 2rem); display: grid; gap: .5rem; }
+    .controls { padding: 0 clamp(1rem, 4vw, 2rem) 1rem; display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+    button { border: 0; background: var(--ink); color: #fff; padding: .7rem 1rem; border-radius: .7rem; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #666; }
+    .button.ghost, button.ghost { background: #fff; color: var(--ink); border: 1px solid #ddd; }
+    .canvas-wrap { display:grid; grid-template-columns:1fr; grid-template-rows:minmax(320px,65vh) auto; gap:.5rem; padding:0 clamp(1rem,4vw,2rem) 1.25rem; }
+    canvas { width:100%; height:100%; background: var(--accent); border-radius:1.2rem; box-shadow:0 10px 30px rgba(0,0,0,.08) inset; }
+    .hint { font-size:.95rem; color:#444; background:#fff; border:1px dashed #ddd; padding:.6rem .8rem; border-radius:.7rem; }
+    .hidden { display:none !important; }
+    .grow { flex:1; }
+    .uploadRow { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
+    .mini { font-size:.85rem; color:#444; }
+    .dropzone {
+      border:1px dashed #cbd5e1; border-radius:.6rem; padding:.4rem .6rem; background:#fff; color:#333;
+    }
+    .dropzone.drag { border-color:#6f95ae; background:#eef6ff; }
+
+    /* Fullscreen: show only the canvas area */
+    .canvas-wrap:fullscreen { padding: 0; grid-template-rows: 1fr; }
+    .canvas-wrap:fullscreen canvas { border-radius: 0; }
+    .canvas-wrap:fullscreen .hint { display: none; }  /* hide the x’d-out text */
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gift Exchange Setup</h1>
+
+    <div class="row">
+      <label for="occasion">Occasion</label>
+      <input id="occasion" type="text" placeholder="Christmas 2025" />
+      <span class="chk"><input id="noIntra" type="checkbox" checked><label for="noIntra">No Intrafamily</label></span>
+      <span class="chk"><input id="noRecip" type="checkbox" checked><label for="noRecip">No Reciprocal</label></span>
+      <!-- Removed: No Repeat Pairs checkbox -->
+    </div>
+
+    <!-- Avoid/No-Repeat importer (visible) -->
+    <div class="uploadRow">
+      <input id="avoidFile" type="file" accept=".txt,.csv" class="hidden" multiple />
+      <button id="uploadAvoid" class="ghost">Import Avoid Pairs</button>
+      <span id="avoidSummary" class="mini">No avoid pairs loaded.</span>
+      <span id="avoidDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
+    </div>
+
+    <!-- Pre-assigned importer (hidden until hotkey or #force) -->
+    <div id="forceRow" class="uploadRow hidden">
+      <input id="forceFile" type="file" accept=".txt,.csv" class="hidden" multiple />
+      <button id="uploadForce" class="ghost">Import Other Pairs</button>
+      <span id="forceSummary" class="mini">No pairs loaded.</span>
+      <span id="forceDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
+      <span class="mini">(<em>Shown via Ctrl+Alt+Shift+F or #force</em>)</span>
+    </div>
+  </header>
+
+  <section class="families" id="families">
+    <label for="familiesBox">Families</label>
+    <textarea id="familiesBox" class="members" rows="8" placeholder="Smith: Alice, Bob, Carol
+Johnson: Dave, Erin
+Lopez: Mateo, Sofia, Lucia
+Kim: Jiho, Yuna
+Patel: Aarav, Diya, Kavya"></textarea>
+  </section>
+
+  <div class="controls">
+    <button id="generate">Generate Assignments</button>
+    <a id="downloadLink" class="button ghost hidden" download>Download Assignments</a>
+    <span class="grow"></span>
+    <button id="showSpinner" class="secondary hidden">Show Spinner</button>
+    <button id="fsToggle" class="ghost hidden" title="Toggle Fullscreen (F)">Fullscreen</button>
+    <button id="resetAll" class="ghost">Reset</button>
+  </div>
+
+  <section class="canvas-wrap hidden" id="spinnerArea">
+    <canvas id="wheel"></canvas>
+    <div class="hint" id="hint"></div>
+  </section>
+
+  <script>
+  (function(){
+    'use strict';
+
+    // ---------- Elements ----------
+    const $ = s => document.querySelector(s);
+    const familiesBox = $('#familiesBox');
+    const generateBtn = $('#generate');
+    const downloadLink = $('#downloadLink');
+    const showSpinnerBtn = $('#showSpinner');
+    const resetBtn = $('#resetAll');
+    const occasionInput = $('#occasion');
+    const noIntraInput = $('#noIntra');
+    const noRecipInput = $('#noRecip');
+    const wheelCanvas = $('#wheel');
+    const wheelCtx = wheelCanvas.getContext('2d');
+    const hintEl = $('#hint');
+    const spinnerArea = $('#spinnerArea');
+
+    // Importers
+    const avoidFile = $('#avoidFile');
+    const uploadAvoidBtn = $('#uploadAvoid');
+    const avoidSummary = $('#avoidSummary');
+    const avoidDrop = $('#avoidDrop');
+
+    const forceRow = $('#forceRow');
+    const forceFile = $('#forceFile');
+    const uploadForceBtn = $('#uploadForce');
+    const forceSummary = $('#forceSummary');
+    const forceDrop = $('#forceDrop');
+
+    // ---------- Hidden force UI toggle ----------
+    function setForceUI(visible){
+      forceRow.classList.toggle('hidden', !visible);
+      console.info('[Rigged Wheel] Pre-assigned importer:', visible ? 'VISIBLE' : 'HIDDEN');
+    }
+    setForceUI(location.hash.includes('force'));
+    window.addEventListener('keydown', (e)=>{
+      if (e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyF'){
+        e.preventDefault(); setForceUI(forceRow.classList.contains('hidden'));
+      }
+    });
+
+    // ---------- Constants ----------
+    const TAU = Math.PI * 2;
+    const POINTER_DEG = -90;
+    function normDeg(d){ d%=360; return d<0? d+360 : d; }
+
+    const PALETTE = [
+      '#F94144','#F3722C','#F8961E','#F9C74F','#90BE6D','#43AA8B',
+      '#577590','#277DA1','#9B5DE5','#F15BB5','#00BBF9','#00F5D4',
+      '#FF7F50','#FFB703','#2A9D8F','#4D908E','#B5179E','#7209B7',
+      '#3A86FF','#8338EC'
+    ];
+
+    // ---------- Stores ----------
+    const avoidPairsSet = new Set();
+    const forcedPairs = new Map();
+
+    // ---------- Parsing helpers ----------
+    const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:)\s*(.+)$/;
+    const TWOSP_RX = /^(.+?)\s{2,}(.+)$/;
+
+    function parseAvoidPairs(text){
+      const lines = String(text).split(/\r?\n/);
+      let added = 0;
+      for (const raw of lines){
+        const line = raw.trim(); if (!line) continue;
+        const m = line.match(LINE_RX) || line.match(TWOSP_RX);
+        if (!m) continue;
+        const g = m[1].trim(), r = m[2].trim();
+        if (!g || !r) continue;
+        const key = `${g}\u2192${r}`;
+        if (!avoidPairsSet.has(key)){ avoidPairsSet.add(key); added++; }
+      }
+      return added;
+    }
+
+    function parseForcePairs(text){
+      const lines = String(text).split(/\r?\n/);
+      let added = 0;
+      for (const raw of lines){
+        const line = raw.trim(); if (!line) continue;
+        const m = line.match(LINE_RX) || line.match(TWOSP_RX);
+        if (!m) continue;
+        const g = m[1].trim(), r = m[2].trim();
+        if (!g || !r || g === r) continue;
+        forcedPairs.set(g, r);
+        added++;
+      }
+      return added;
+    }
+
+    function summarizeAvoid(){
+      avoidSummary.textContent = avoidPairsSet.size
+        ? `${avoidPairsSet.size} avoid pairs loaded.`
+        : 'No avoid pairs loaded.';
+    }
+    function summarizeForce(){
+      const n = forcedPairs.size;
+      forceSummary.textContent = n
+        ? `${n} pair(s) loaded.`
+        : 'No pair(s) loaded.';
+    }
+
+    // ---------- Avoid importer wiring (multi-file) ----------
+    uploadAvoidBtn.addEventListener('click', () => {
+      avoidFile.click();
+      uploadAvoidBtn.blur(); // prevent Enter re-trigger
+    });
+    avoidFile.addEventListener('change', () => {
+      if (!avoidFile.files?.length) return;
+      for (const f of avoidFile.files) {
+        const r = new FileReader();
+        r.onload = () => { parseAvoidPairs(r.result || ''); summarizeAvoid(); };
+        r.readAsText(f);
+      }
+      avoidFile.value = '';
+      uploadAvoidBtn.blur();
+    });
+    ['dragenter','dragover'].forEach(ev =>
+      avoidDrop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); avoidDrop.classList.add('drag'); })
+    );
+    ['dragleave','drop'].forEach(ev =>
+      avoidDrop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); avoidDrop.classList.remove('drag'); })
+    );
+    avoidDrop.addEventListener('drop', e => {
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
+      for (const f of files) {
+        const r = new FileReader();
+        r.onload = () => { parseAvoidPairs(r.result || ''); summarizeAvoid(); };
+        r.readAsText(f);
+      }
+    });
+    avoidDrop.addEventListener('paste', e => {
+      const t = e.clipboardData?.getData('text'); if (!t) return;
+      parseAvoidPairs(t); summarizeAvoid();
+    });
+
+    // ---------- Force importer wiring (multi-file) ----------
+    uploadForceBtn.addEventListener('click', () => {
+      forceFile.click();
+      uploadForceBtn.blur(); // prevent Enter re-trigger
+    });
+    forceFile.addEventListener('change', () => {
+      if (!forceFile.files?.length) return;
+      for (const f of forceFile.files) {
+        const r = new FileReader();
+        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); };
+        r.readAsText(f);
+      }
+      forceFile.value = '';
+      uploadForceBtn.blur();
+    });
+    ['dragenter','dragover'].forEach(ev =>
+      forceDrop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); forceDrop.classList.add('drag'); })
+    );
+    ['dragleave','drop'].forEach(ev =>
+      forceDrop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); forceDrop.classList.remove('drag'); })
+    );
+    forceDrop.addEventListener('drop', e => {
+      const files = e.dataTransfer?.files;
+      if (!files?.length) return;
+      for (const f of files) {
+        const r = new FileReader();
+        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); };
+        r.readAsText(f);
+      }
+    });
+    forceDrop.addEventListener('paste', e => {
+      const t = e.clipboardData?.getData('text'); if (!t) return;
+      parseForcePairs(t); summarizeForce();
+    });
+
+    // swallow Enter on those buttons (prevents reopening)
+    [uploadAvoidBtn, uploadForceBtn].forEach(btn => {
+      btn.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); }
+      });
+    });
+
+    // ---------- Families ----------
+    function collectFamilies() {
+      const txt = (familiesBox.value || '').trim();
+      const families = {};
+      if (!txt) return families;
+      const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      let idx = 1;
+      for (const line of lines) {
+        const parts = line.split(':');
+        const name = parts.length > 1 ? parts[0].trim() : `Family${idx++}`;
+        const membersPart = parts.length > 1 ? parts[1] : parts[0];
+        const members = membersPart.split(',').map(s => s.trim()).filter(Boolean);
+        if (members.length) families[name] = members;
+      }
+      return families;
+    }
+
+    // ---------- Assignment generation ----------
+    function generateAssignments(families, occasionStr, noIntra=true, noRecip=true, noRepeat=false,
+                                 avoidSet=new Set(), forcedMap=new Map()) {
+
+      const peopleSet = new Set(Object.values(families).flat());
+      for (const [g,r] of forcedMap.entries()){ peopleSet.add(g); peopleSet.add(r); }
+      const people = Array.from(peopleSet);
+
+      const famOf = new Map();
+      for (const [fam, members] of Object.entries(families)) for (const m of members) famOf.set(m, fam);
+      const inSameFamily = (a,b) => famOf.get(a) === famOf.get(b);
+
+      function violates(assignments, giver, recipient){
+        if (giver === recipient) return true;
+        if (noIntra && inSameFamily(giver, recipient)) return true;
+        if (noRecip && assignments.get(recipient) === giver) return true;
+        for (const r of assignments.values()) if (r === recipient) return true;
+        if (noRepeat && avoidSet.size && avoidSet.has(`${giver}\u2192${recipient}`)) return true;
+        return false;
+      }
+
+      const MAX_TRIES = 5000;
+      for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+        const shuffled = [...people];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        const assignments = new Map();
+
+        for (const [g,r] of forcedMap.entries()){
+          if (g === r) continue;
+          assignments.set(g, r);
+        }
+
+        let failed = false;
+        for (const giver of shuffled){
+          if (assignments.has(giver)) continue;
+          const candidates = people.filter(p => !violates(assignments, giver, p));
+          if (!candidates.length){ failed = true; break; }
+          assignments.set(giver, candidates[Math.floor(Math.random() * candidates.length)]);
+        }
+
+        for (const [g,r] of forcedMap.entries()){
+          if (assignments.get(g) !== r){ failed = true; break; }
+        }
+        if (failed) continue;
+
+        const safeOcc = occasionStr.replace(/[\\/\s]+/g, '_');
+        const fileName = `assignments_${safeOcc || 'exchange'}.txt`;
+        const lines = Array.from(assignments.entries()).map(([g,r]) => `${g} -> ${r}`).join('\n');
+        const url = URL.createObjectURL(new Blob([lines], {type: 'text/plain'}));
+        downloadLink.classList.remove('hidden');
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        return Object.fromEntries(assignments);
+      }
+
+      alert("Could not generate a valid gift exchange with these constraints.\nTry relaxing a constraint or review pre-assigned pairs.");
+      return null;
+    }
+
+    // ---------- Spinner state & visuals ----------
+    const STATE_WAIT=0, STATE_POWER=1, STATE_SPIN=2, STATE_RESULT=3;
+    let assignments=null, pairs=[], iPair=0;
+    let state=STATE_WAIT, giver='', chosenReceiver='';
+    let pendingReset=false, lastResultIndex=-1;
+
+    let slowdownFactor = 0.98;
+
+    const POWER_MAX = 30;
+    let p=0, v=1.2, dir=+1, powerVal=0;
+    function powerFromPos(pos){ const c=pos-0.5, n=1-4*c*c; return Math.floor(POWER_MAX*Math.max(0,n)+1e-6); }
+
+    let currentAngle=0, speed=0, receivers=[];
+    const wheelCanvasOff = document.createElement('canvas');
+    const wheelCtxOff = wheelCanvasOff.getContext('2d');
+
+    // ---------- Tick sound state & helpers ----------
+    let audioCtx = null;
+    function ensureAudio(){
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function playTick(){
+      ensureAudio();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1850, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.18, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.06);
+    }
+    let prevTickIndex = null; // index under pointer last frame
+
+    function resizeCanvasToDisplaySize(canvas){
+      const dpr = Math.max(1, window.devicePixelRatio||1);
+      const cs = canvas.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(cs.width*dpr));
+      const h = Math.max(320, Math.floor(cs.height*dpr));
+      if (canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; return true; }
+      return false;
+    }
+    function pointOnCircle(cx,cy,r,a){ return [cx + r*Math.cos(a), cy + r*Math.sin(a)]; }
+
+    function drawTextWithBox(ctx, text, x, y, fontPx, pad=10){
+      ctx.save();
+      ctx.font = `700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`;
+      const w = ctx.measureText(text).width;
+      const h = fontPx*1.4;
+      ctx.shadowColor='rgba(0,0,0,.16)'; ctx.shadowBlur=8;
+      ctx.fillStyle='rgba(255,255,255,.97)';
+      ctx.fillRect(x-w/2-pad, y-h/2-pad, w+pad*2, h+pad*2);
+      ctx.shadowBlur=0; ctx.fillStyle='#111'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+    function initialsOf(name){
+      const parts = String(name).trim().split(/\s+/);
+      if (parts.length>=2) return (parts[0][0]+parts[1][0]+(parts[2]?.[0]||'')).toUpperCase();
+      const a = parts[0]||''; return a.slice(0,3).toUpperCase();
+    }
+
+    function layoutWheel(assignmentsObj, width, height){
+      wheelCanvasOff.width = width; wheelCanvasOff.height = height;
+      const ctx = wheelCtxOff; ctx.clearRect(0,0,width,height);
+      const cx=width/2, cy=height/2;
+      receivers = Object.values(assignmentsObj||{}); const n=receivers.length; if(!n) return;
+      const wedge = TAU/n; const radius = Math.min(width,height)*0.42;
+      const useInitials = n>24;
+      const baseFont = Math.max(12, Math.floor(Math.min(width,height)*(useInitials?0.055:0.06)));
+      const labelRadius = radius*0.72;
+
+      for (let i=0;i<n;i++){
+        const color = PALETTE[i%PALETTE.length];
+        const start=i*wedge, center=start+wedge/2;
+
+        ctx.beginPath(); ctx.moveTo(cx,cy);
+        for (let s=0;s<=32;s++){ const ang=start+(s/32)*wedge; const [x,y]=pointOnCircle(cx,cy,radius,ang); ctx.lineTo(x,y); }
+        ctx.closePath();
+        ctx.fillStyle=color; ctx.shadowColor='rgba(0,0,0,.10)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+
+        ctx.strokeStyle='rgba(0,0,0,.22)'; ctx.lineWidth=2;
+        const [lx,ly]=pointOnCircle(cx,cy,radius,start); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.stroke();
+
+        const label = useInitials? initialsOf(receivers[i]) : receivers[i];
+        const [tx,ty]=pointOnCircle(cx,cy,labelRadius,center);
+        const arcLen = radius*wedge*0.85; let fontPx=baseFont; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`;
+        while (ctx.measureText(label).width>arcLen && fontPx>10){ fontPx--; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`; }
+
+        ctx.save(); ctx.translate(tx,ty); ctx.rotate(-center); ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.lineWidth=Math.max(2,Math.floor(fontPx/6)); ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(label,0,0);
+        ctx.fillStyle='#fff'; ctx.fillText(label,0,0); ctx.restore();
+      }
+
+      ctx.beginPath(); ctx.arc(cx,cy,radius*0.07,0,TAU); ctx.fillStyle='#222'; ctx.fill();
+    }
+
+    let rafId=0, lastTime=0, stepAccum=0; const STEP=1/60;
+    function loop(ts){
+      rafId = requestAnimationFrame(loop);
+      if (!lastTime) lastTime=ts;
+      const dt = Math.min(0.25, (ts-lastTime)/1000); lastTime = ts; stepAccum += dt;
+
+      if (state===STATE_POWER){
+        p += dir * v * dt;
+        if (p >= 1) { p = 1; dir = -1; }
+        if (p <= 0) { p = 0; dir = +1; }
+        powerVal = powerFromPos(p);
+      }
+
+      while (stepAccum>=STEP){
+        stepAccum -= STEP;
+        if (state===STATE_SPIN){
+          currentAngle += speed;
+          speed *= slowdownFactor;
+
+          // Tick: detect slice under fixed pointer
+          const n = Math.max(1, receivers.length);
+          const wedgeDeg = 360 / n;
+          const phase = normDeg(POINTER_DEG - currentAngle);
+          const idxNow = Math.floor(phase / wedgeDeg);
+
+          if (prevTickIndex === null){
+            prevTickIndex = idxNow;
+          } else if (idxNow !== prevTickIndex){
+            let steps = idxNow - prevTickIndex;
+            if (steps < 0) steps += n;
+            for (let k=0;k<steps;k++) playTick();
+            prevTickIndex = idxNow;
+          }
+
+          if (speed < 0.001) {
+            state = STATE_RESULT;
+            pendingReset = true;
+            lastResultIndex = iPair;
+          }
+        }
+      }
+      render();
+    }
+
+    function render(){
+      if (resizeCanvasToDisplaySize(wheelCanvas)){
+        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+      }
+      const cx=wheelCanvas.width/2, cy=wheelCanvas.height/2;
+
+      const bg = wheelCtx.createRadialGradient(cx,cy,0,cx,cy,Math.max(cx,cy));
+      bg.addColorStop(0,'#fcfcfe'); bg.addColorStop(1,'#e8eef6');
+      wheelCtx.fillStyle = bg; wheelCtx.fillRect(0,0,wheelCanvas.width, wheelCanvas.height);
+
+      wheelCtx.save(); wheelCtx.translate(cx,cy); wheelCtx.rotate(currentAngle*Math.PI/180);
+      wheelCtx.drawImage(wheelCanvasOff,-cx,-cy); wheelCtx.restore();
+
+      const pointerTop = wheelCanvas.height*0.10, pointerBase = wheelCanvas.height*0.18;
+      wheelCtx.beginPath(); wheelCtx.moveTo(cx,pointerBase); wheelCtx.lineTo(cx-26,pointerTop); wheelCtx.lineTo(cx+26,pointerTop);
+      wheelCtx.closePath(); wheelCtx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--pointer')||'#ff6b6b';
+      wheelCtx.shadowColor='rgba(0,0,0,.22)'; wheelCtx.shadowBlur=8; wheelCtx.fill(); wheelCtx.shadowBlur=0;
+
+      const hudFont = Math.max(14, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.05));
+      drawTextWithBox(wheelCtx, `Giver: ${giver || ''}`, cx, wheelCanvas.height * 0.07, hudFont);
+
+      if (state===STATE_POWER) drawPowerBar(cx, Math.floor(wheelCanvas.height*0.22));
+
+      if (state===STATE_WAIT){
+        hintEl.textContent = 'Ready. Press SPACE to pick & open the power bar.';
+      } else if (state===STATE_POWER){
+        hintEl.textContent = `Set power: +${powerVal}. Press SPACE to lock & spin.`;
+      } else if (state===STATE_SPIN){
+        hintEl.textContent = 'Spinning… Press SPACE to force-stop.';
+      } else if (state===STATE_RESULT){
+        hintEl.textContent = 'Result shown. Press SPACE to open power for the next pair.';
+        if (giver && chosenReceiver){
+          const note = `${giver} \u2192 ${chosenReceiver}`;
+          const noteFont = Math.max(16, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.06));
+          drawTextWithBox(wheelCtx, note, cx, wheelCanvas.height * 0.90, noteFont);
+        }
+      }
+    }
+
+    function drawPowerBar(cx, y){
+      const ctx = wheelCtx;
+      const W = Math.min(wheelCanvas.width*0.8, 700);
+      const H = 22; const r = H/2; const x = cx - W/2;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x+r, y); ctx.lineTo(x+W-r, y);
+      ctx.arc(x+W-r, y+r, r, -Math.PI/2, Math.PI/2);
+      ctx.lineTo(x+r, y+H);
+      ctx.arc(x+r, y+r, r, Math.PI/2, -Math.PI/2);
+      ctx.closePath(); ctx.fillStyle = 'white';
+      ctx.shadowColor='rgba(0,0,0,.08)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+      ctx.strokeStyle = '#d6dce7'; ctx.stroke();
+
+      const grad = ctx.createLinearGradient(x, y, x+W, y);
+      grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
+      grad.addColorStop(0.5, getComputedStyle(document.documentElement).getPropertyValue('--barMid') || '#ff4d4d');
+      grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
+
+      ctx.beginPath(); ctx.rect(x+2, y+2, (W-4)*p, H-4); ctx.fillStyle = grad; ctx.fill();
+
+      ctx.globalAlpha=.45; ctx.strokeStyle='#9fb0cf';
+      for (let k=0;k<=30;k++){
+        const tx = x + (W) * (k/30);
+        const len = (k%5===0)? 10 : 6;
+        ctx.beginPath(); ctx.moveTo(tx, y - len/2); ctx.lineTo(tx, y + H + len/2); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+
+      const livePower = powerFromPos(p);
+      const m = livePower / 30;
+      const hue = 120 * (1 - m);
+      ctx.beginPath(); ctx.arc(x + W*p, y + H/2, H*0.55, 0, Math.PI*2);
+      ctx.fillStyle = `hsl(${hue}, 85%, 50%)`;
+      ctx.shadowColor = 'var(--barDotShadow)'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+
+    function resetSpinner(assignmentsObj){
+      assignments = assignmentsObj; pairs = Object.entries(assignments); iPair=0;
+      state = STATE_WAIT; giver=''; chosenReceiver=''; currentAngle=0; speed=0;
+      p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
+      prevTickIndex = null;       // reset tick index
+      layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height); render();
+    }
+
+    // ---------- Controls ----------
+    window.addEventListener('keydown', (ev)=>{
+      if (spinnerArea.classList.contains('hidden')) return;
+      if (ev.code!=='Space') return;
+      ev.preventDefault();
+
+      ensureAudio();
+
+      if (state===STATE_WAIT){
+        if (!pairs.length) return;
+        if (iPair>=pairs.length) iPair=0;
+        [giver, chosenReceiver] = pairs[iPair];
+        p = 0; dir = +1; powerVal = 0;
+        state = STATE_POWER;
+
+      } else if (state===STATE_RESULT){
+        if (!pairs.length) return;
+        iPair = (iPair + 1) % pairs.length;
+        [giver, chosenReceiver] = pairs[iPair];
+        p = 0; dir = +1; powerVal = 0;
+        state = STATE_POWER;
+
+      } else if (state===STATE_POWER){
+        const bonus = powerFromPos(p);
+        const doSpin = ()=> spinWithPower(bonus);
+
+        if (pendingReset && lastResultIndex >= 0 && pairs.length){
+          pairs.splice(lastResultIndex, 1);
+          if (iPair > lastResultIndex) iPair--;
+          if (iPair >= pairs.length) iPair = 0;
+          layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+          pendingReset = false; lastResultIndex = -1;
+          setTimeout(doSpin, 0);
+        } else {
+          doSpin();
+        }
+
+      } else if (state===STATE_SPIN){
+        state = STATE_RESULT;
+        pendingReset = true;
+        lastResultIndex = iPair;
+      }
+    });
+
+    function spinWithPower(bonus){
+      const n = Math.max(1, receivers.length);
+
+      const sign = (Math.random() < 0.5 ? -1 : 1);
+      const randInt = Math.random();
+      const jitter = sign * ((.5 - randInt) / (2 * n));
+      const jitterDeg = jitter * 360;
+
+      const totalN = 0.25 + bonus;
+      const totalAngle = totalN * 360;
+      const speed0 = totalAngle * (1 - 0.98);
+
+      const wedgeDeg = 360 / n;
+      const idx = receivers.indexOf(chosenReceiver);
+      if (idx < 0) {
+        currentAngle = 0;
+      } else {
+        const centerDeg = (idx + 0.5) * wedgeDeg;
+        const targetFinal = normDeg(POINTER_DEG - centerDeg);
+        currentAngle = normDeg(targetFinal - totalAngle) + jitterDeg;
+      }
+      prevTickIndex = null; // reset tick index at spin start
+      speed = speed0;
+      state = STATE_SPIN;
+      if (!rafId){ lastTime=0; stepAccum=0; rafId=requestAnimationFrame(loop); }
+    }
+
+    // Buttons
+    generateBtn.addEventListener('click', ()=>{
+      const occasion = (occasionInput.value.trim() || 'Gift_Exchange');
+      const families = collectFamilies();
+
+      if (Object.keys(families).length === 0 && forcedPairs.size===0){
+        alert('Add families or import pre-assigned pairs first.'); return;
+      }
+
+      // Auto-enable noRepeat if any avoid pairs are loaded
+      const noRepeat = avoidPairsSet.size > 0;
+
+      const assn = generateAssignments(
+        families,
+        occasion,
+        !!noIntraInput.checked,
+        !!noRecipInput.checked,
+        noRepeat,
+        avoidPairsSet,
+        forcedPairs
+      );
+      if (!assn) return;
+
+      resetSpinner(assn);
+      showSpinnerBtn.classList.remove('hidden');
+      showSpinnerBtn.click();
+    });
+
+    // Show spinner + FS button
+    const fsToggleBtn = $('#fsToggle');
+    showSpinnerBtn.addEventListener('click', ()=>{
+      spinnerArea.classList.remove('hidden');
+      if (!rafId){ lastTime=0; stepAccum=0; rafId=requestAnimationFrame(loop); }
+      fsToggleBtn.classList.remove('hidden');
+    });
+
+    // Fullscreen
+    function toggleFullscreen(){
+      const el = spinnerArea;
+      if (!document.fullscreenElement) {
+        el.requestFullscreen?.().catch(()=>{ /* ignore */ });
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+    document.addEventListener('fullscreenchange', ()=>{
+      fsToggleBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+    });
+    fsToggleBtn.addEventListener('click', toggleFullscreen);
+    window.addEventListener('keydown', (e)=>{
+      if (spinnerArea.classList.contains('hidden')) return;
+      if (e.code === 'KeyF' && !e.ctrlKey && !e.altKey && !e.shiftKey){
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      familiesBox.value=''; occasionInput.value='';
+      noIntraInput.checked=true; noRecipInput.checked=true;
+      downloadLink.classList.add('hidden'); downloadLink.removeAttribute('href');
+      spinnerArea.classList.add('hidden');
+      cancelAnimationFrame(rafId); rafId=0; lastTime=0; stepAccum=0;
+      receivers=[]; state=STATE_WAIT; p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
+      prevTickIndex = null;
+
+      avoidPairsSet.clear(); forcedPairs.clear();
+      summarizeAvoid(); summarizeForce();
+    });
+
+    // Keep crisp on resize
+    new ResizeObserver(()=>{
+      if (!spinnerArea.classList.contains('hidden')){
+        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+        render();
+      }
+    }).observe(wheelCanvas);
+
+    // init summaries
+    summarizeAvoid(); summarizeForce();
+
+  })();
+  </script>
+</body>
+</html>
