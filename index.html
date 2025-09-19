@@ -620,43 +620,47 @@ Patel: Aarav, Diya, Kavya"></textarea>
 
       if (state===STATE_WAIT){
         if (!pairs.length) return;
-        if (iPair>=pairs.length) iPair=0;
+        // pick the first pair
+        iPair = 0;
         [giver, chosenReceiver] = pairs[iPair];
         p = 0; dir = +1; powerVal = 0;
         state = STATE_POWER;
 
       } else if (state===STATE_RESULT){
-        if (!pairs.length) return;
-        iPair = (iPair + 1) % pairs.length;
+        // 1) remove the finished pair
+        if (pendingReset && lastResultIndex >= 0 && pairs.length){
+          pairs.splice(lastResultIndex, 1);
+          pendingReset = false; lastResultIndex = -1;
+        }
+        // if done, reset to WAIT
+        if (!pairs.length){
+          state = STATE_WAIT;
+          giver=''; chosenReceiver=''; currentAngle=0; speed=0;
+          layoutWheel({}, wheelCanvas.width, wheelCanvas.height);
+          render();
+          return;
+        }
+        // 2) shuffle remaining pairs
+        for (let i = pairs.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+        }
+        // 3) rebuild the wheel for the new set
+        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+
+        // 4) select next pair AFTER rebuild
+        iPair = 0;
         [giver, chosenReceiver] = pairs[iPair];
         p = 0; dir = +1; powerVal = 0;
         state = STATE_POWER;
 
       } else if (state===STATE_POWER){
+        // lock the power and spin
         const bonus = powerFromPos(p);
-        const doSpin = ()=> spinWithPower(bonus);
-
-        if (pendingReset && lastResultIndex >= 0 && pairs.length){
-          // Remove the finished pair
-          pairs.splice(lastResultIndex, 1);
-
-          // 🔀 Shuffle remaining pairs
-          for (let i = pairs.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
-          }
-          iPair = 0; // reset pointer into shuffled list
-
-          // Rebuild the wheel with the new order
-          layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
-
-          pendingReset = false; lastResultIndex = -1;
-          setTimeout(doSpin, 0);
-        } else {
-          doSpin();
-        }
+        spinWithPower(bonus);
 
       } else if (state===STATE_SPIN){
+        // force stop -> show result (will be pruned on next advance)
         state = STATE_RESULT;
         pendingReset = true;
         lastResultIndex = iPair;
