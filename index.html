@@ -74,7 +74,7 @@
     <div class="row">
       <label for="occasion">Occasion</label>
       <input id="occasion" type="text" placeholder="Christmas 2025" />
-      <span class="chk"><input id="intra" type="checkbox"><label for="intra">Intrafamily</label></span>
+      <span class="chk"><input id="intra" type="checkbox"><label for="intra">Intrafamilial</label></span>
       <span class="chk"><input id="recip" type="checkbox"><label for="recip">Reciprocal</label></span>
       <!-- No-Repeat checkbox removed; avoid list implies no-repeat -->
     </div>
@@ -133,7 +133,7 @@ Aarav, Diya, Kavya"></textarea>
     const showSpinnerBtn = $('#showSpinner');
     const resetBtn = $('#resetAll');
     const occasionInput = $('#occasion');
-    const intraInput = $('#intra');   // allow intrafamily when checked
+    const intraInput = $('#intra');   // allow Intrafamilial when checked
     const recipInput = $('#recip');   // allow reciprocal when checked
     const wheelCanvas = $('#wheel');
     const wheelCtx = wheelCanvas.getContext('2d');
@@ -165,7 +165,7 @@ Aarav, Diya, Kavya"></textarea>
         e.preventDefault(); setForceUI(forceRow.classList.contains('hidden'));
       }
     });
-    // Easter-egg sequence: Intrafamily → Reciprocal → Intrafamily
+    // Easter-egg sequence: Intrafamilial → Reciprocal → Intrafamilial
     let seq=[], t0=0;
     function pushSeq(code){
       const now=Date.now();
