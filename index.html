@@ -598,9 +598,8 @@ Patel: Aarav, Diya, Kavya"></textarea>
 
       const livePower = powerFromPos(p);
       const m = livePower / 30;
-      const hue = 120 * (1 - m);
       ctx.beginPath(); ctx.arc(x + W*p, y + H/2, H*0.55, 0, Math.PI*2);
-      ctx.fillStyle = `hsl(${hue}, 85%, 50%)`;
+      ctx.fillStyle = `hsl(${120*(1-m)}, 85%, 50%)`;
       ctx.shadowColor = 'var(--barDotShadow)'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
 
       ctx.restore();
@@ -638,10 +637,19 @@ Patel: Aarav, Diya, Kavya"></textarea>
         const doSpin = ()=> spinWithPower(bonus);
 
         if (pendingReset && lastResultIndex >= 0 && pairs.length){
+          // Remove the finished pair
           pairs.splice(lastResultIndex, 1);
-          if (iPair > lastResultIndex) iPair--;
-          if (iPair >= pairs.length) iPair = 0;
+
+          // 🔀 Shuffle remaining pairs
+          for (let i = pairs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+          }
+          iPair = 0; // reset pointer into shuffled list
+
+          // Rebuild the wheel with the new order
           layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+
           pendingReset = false; lastResultIndex = -1;
           setTimeout(doSpin, 0);
         } else {
@@ -662,11 +670,9 @@ Patel: Aarav, Diya, Kavya"></textarea>
       advanceSpinFlow();
     });
 
-    // Click / Tap inside the spinner area (but ignore clicks on controls outside it)
+    // Click / Tap inside the spinner area
     function handlePointerAdvance(e){
-      // only react if spinner is visible and the click is inside spinnerArea
       if (spinnerArea.classList.contains('hidden')) return;
-      // ignore if selecting text etc.
       e.preventDefault();
       e.stopPropagation();
       advanceSpinFlow();
