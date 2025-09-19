@@ -74,8 +74,8 @@
     <div class="row">
       <label for="occasion">Occasion</label>
       <input id="occasion" type="text" placeholder="Christmas 2025" />
-      <span class="chk"><input id="noIntra" type="checkbox" checked><label for="noIntra">No Intrafamily</label></span>
-      <span class="chk"><input id="noRecip" type="checkbox" checked><label for="noRecip">No Reciprocal</label></span>
+      <span class="chk"><input id="intra" type="checkbox"><label for="intra">Intrafamily</label></span>
+      <span class="chk"><input id="recip" type="checkbox"><label for="recip">Reciprocal</label></span>
       <!-- No-Repeat checkbox removed; avoid list implies no-repeat -->
     </div>
 
@@ -87,13 +87,13 @@
       <span id="avoidDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
     </div>
 
-    <!-- Pre-assigned importer (hidden until hotkey or #force) -->
+    <!-- Pre-assigned importer (hidden until hotkey, #force, or secret toggle) -->
     <div id="forceRow" class="uploadRow hidden">
       <input id="forceFile" type="file" accept=".txt,.csv" class="hidden" multiple />
       <button id="uploadForce" class="ghost">Import Other Pairs</button>
       <span id="forceSummary" class="mini">No pairs loaded.</span>
       <span id="forceDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
-      <span class="mini">(<em>Shown via Ctrl+Alt+Shift+F or #force</em>)</span>
+      <span class="mini">(<em>Shown via Ctrl+Alt+Shift+F, #force, or Intrafamily → Reciprocal → Intrafamily</em>)</span>
     </div>
   </header>
 
@@ -132,8 +132,8 @@ Patel: Aarav, Diya, Kavya"></textarea>
     const showSpinnerBtn = $('#showSpinner');
     const resetBtn = $('#resetAll');
     const occasionInput = $('#occasion');
-    const noIntraInput = $('#noIntra');
-    const noRecipInput = $('#noRecip');
+    const intraInput = $('#intra');   // allow intrafamily when checked
+    const recipInput = $('#recip');   // allow reciprocal when checked
     const wheelCanvas = $('#wheel');
     const wheelCtx = wheelCanvas.getContext('2d');
     const hintEl = $('#hint');
@@ -156,12 +156,26 @@ Patel: Aarav, Diya, Kavya"></textarea>
       forceRow.classList.toggle('hidden', !visible);
       console.info('[Rigged Wheel] Pre-assigned importer:', visible ? 'VISIBLE' : 'HIDDEN');
     }
+    // Show if URL has #force
     setForceUI(location.hash.includes('force'));
+    // Hotkey: Ctrl+Alt+Shift+F
     window.addEventListener('keydown', (e)=>{
       if (e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyF'){
         e.preventDefault(); setForceUI(forceRow.classList.contains('hidden'));
       }
     });
+    // Easter-egg sequence: Intrafamily → Reciprocal → Intrafamily
+    let seq=[], t0=0;
+    function pushSeq(code){
+      const now=Date.now();
+      if (!t0 || now - t0 > 2500){ seq=[]; t0=now; }
+      seq.push(code);
+      // keep only last 3
+      if (seq.length>3) seq.shift();
+      if (seq.join(',') === 'I,R,I'){ setForceUI(true); seq=[]; t0=0; }
+    }
+    intraInput.addEventListener('change', ()=> pushSeq('I'));
+    recipInput.addEventListener('change', ()=> pushSeq('R'));
 
     // ---------- Constants ----------
     const TAU = Math.PI * 2;
@@ -632,7 +646,6 @@ Patel: Aarav, Diya, Kavya"></textarea>
           pairs.splice(lastResultIndex, 1);
           pendingReset = false; lastResultIndex = -1;
         }
-        // if done, reset to WAIT
         if (!pairs.length){
           state = STATE_WAIT;
           giver=''; chosenReceiver=''; currentAngle=0; speed=0;
@@ -645,22 +658,19 @@ Patel: Aarav, Diya, Kavya"></textarea>
           const j = Math.floor(Math.random() * (i + 1));
           [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
         }
-        // 3) rebuild the wheel for the new set
+        // 3) rebuild wheel
         layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
-
-        // 4) select next pair AFTER rebuild
+        // 4) pick next pair
         iPair = 0;
         [giver, chosenReceiver] = pairs[iPair];
         p = 0; dir = +1; powerVal = 0;
         state = STATE_POWER;
 
       } else if (state===STATE_POWER){
-        // lock the power and spin
         const bonus = powerFromPos(p);
         spinWithPower(bonus);
 
       } else if (state===STATE_SPIN){
-        // force stop -> show result (will be pruned on next advance)
         state = STATE_RESULT;
         pendingReset = true;
         lastResultIndex = iPair;
@@ -723,11 +733,15 @@ Patel: Aarav, Diya, Kavya"></textarea>
       // Auto-enable noRepeat if any avoid pairs are loaded
       const noRepeat = avoidPairsSet.size > 0;
 
+      // Flip logic: checkboxes mean "allow"; generator expects "forbid" booleans
+      const noIntra = !intraInput.checked;
+      const noRecip = !recipInput.checked;
+
       const assn = generateAssignments(
         families,
         occasion,
-        !!noIntraInput.checked,
-        !!noRecipInput.checked,
+        noIntra,
+        noRecip,
         noRepeat,
         avoidPairsSet,
         forcedPairs
@@ -770,7 +784,7 @@ Patel: Aarav, Diya, Kavya"></textarea>
 
     resetBtn.addEventListener('click', ()=>{
       familiesBox.value=''; occasionInput.value='';
-      noIntraInput.checked=true; noRecipInput.checked=true;
+      intraInput.checked=false; recipInput.checked=false;
       downloadLink.classList.add('hidden'); downloadLink.removeAttribute('href');
       spinnerArea.classList.add('hidden');
       cancelAnimationFrame(rafId); rafId=0; lastTime=0; stepAccum=0;
