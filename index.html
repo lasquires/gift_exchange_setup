@@ -194,7 +194,7 @@ Patel: Aarav, Diya, Kavya"></textarea>
     const forcedPairs = new Map();
 
     // ---------- Parsing helpers ----------
-    const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:)\s*(.+)$/;
+    const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:|\s+to\s+)\s*(.+)$/;
     const TWOSP_RX = /^(.+?)\s{2,}(.+)$/;
 
     function parseAvoidPairs(text){
@@ -202,7 +202,7 @@ Patel: Aarav, Diya, Kavya"></textarea>
       let added = 0;
       for (const raw of lines){
         const line = raw.trim(); if (!line) continue;
-        const m = line.match(LINE_RX) || line.match(TWOSP_RX);
+        const m = line.match(LINE_RX); // ignore lines without a delimiter
         if (!m) continue;
         const g = m[1].trim(), r = m[2].trim();
         if (!g || !r) continue;
@@ -217,7 +217,7 @@ Patel: Aarav, Diya, Kavya"></textarea>
       let added = 0;
       for (const raw of lines){
         const line = raw.trim(); if (!line) continue;
-        const m = line.match(LINE_RX) || line.match(TWOSP_RX);
+        const m = line.match(LINE_RX); // ignore lines without a delimiter
         if (!m) continue;
         const g = m[1].trim(), r = m[2].trim();
         if (!g || !r || g === r) continue;
