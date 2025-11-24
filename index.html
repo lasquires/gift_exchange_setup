@@ -412,7 +412,7 @@ Aarav, Diya, Kavya"></textarea>
 
     let slowdownFactor = 0.98;
 
-    const POWER_MAX = 30;
+    const POWER_MAX = 50;
     let p=0, v=1.2, dir=+1, powerVal=0;
     function powerFromPos(pos){ const c=pos-0.5, n=1-4*c*c; return Math.floor(POWER_MAX*Math.max(0,n)+1e-6); }
 
@@ -711,7 +711,7 @@ Aarav, Diya, Kavya"></textarea>
       const jitter = sign * ((.5 - randInt) / (2 * n));
       const jitterDeg = jitter * 360;
 
-      const totalN = 0.25 + bonus;
+      const totalN = 3.25 + bonus;
       const totalAngle = totalN * 360;
       const speed0 = totalAngle * (1 - 0.98);
 
