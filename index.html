@@ -1200,8 +1200,9 @@
       const idx = receivers.indexOf(chosenReceiver);
       const targetFinal = idx < 0 ? Math.random()*360 :
         normDeg(POINTER_DEG - (idx + .5) * wedgeDeg);
-      const finishOffset=normDeg(targetFinal + jitterDeg);
-      const totalAngle=Math.floor(totalN)*360 + finishOffset;
+      const baseTravel=totalN*360;
+      const alignmentTravel=normDeg(targetFinal + jitterDeg - normDeg(baseTravel));
+      const totalAngle=baseTravel + alignmentTravel;
 
       // Reset immediately before motion. No targeted starting angle is rendered.
       currentAngle=0;
