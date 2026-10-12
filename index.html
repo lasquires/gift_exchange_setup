@@ -608,6 +608,15 @@
     const wheelCtx = wheelCanvas.getContext('2d');
     const hintEl = $('#hint');
     const spinnerArea = $('#spinnerArea');
+    const backToSetup = $('#backToSetup');
+    const spinAction = $('#spinAction');
+    const powerPanel = $('#powerPanel');
+    const powerFill = $('#powerFill');
+    const powerNumber = $('#powerNumber');
+    const resultPanel = $('#resultPanel');
+    const assignmentList = $('#assignmentList');
+    const assignmentsCard = $('#assignmentsCard');
+    const toggleAssignmentList = $('#toggleAssignmentList');
 
     // Importers
     const avoidFile = $('#avoidFile');
@@ -661,10 +670,9 @@
     function normDeg(d){ d%=360; return d<0? d+360 : d; }
 
     const PALETTE = [
-      '#F94144','#F3722C','#F8961E','#F9C74F','#90BE6D','#43AA8B',
-      '#577590','#277DA1','#9B5DE5','#F15BB5','#00BBF9','#00F5D4',
-      '#FF7F50','#FFB703','#2A9D8F','#4D908E','#B5179E','#7209B7',
-      '#3A86FF','#8338EC'
+      '#b7d2e3','#dbe5ec','#a8c8d8','#d3e4e0',
+      '#c1cee4','#dfdce9','#accdd0','#d5e0ec',
+      '#abc2dc','#d4e5e1','#bfd9e9','#d7ddec'
     ];
 
     // ---------- Stores ----------
@@ -940,38 +948,60 @@
     }
 
     function layoutWheel(assignmentsObj, width, height){
-      wheelCanvasOff.width = width; wheelCanvasOff.height = height;
-      const ctx = wheelCtxOff; ctx.clearRect(0,0,width,height);
+      wheelCanvasOff.width = width;
+      wheelCanvasOff.height = height;
+      const ctx = wheelCtxOff;
+      ctx.clearRect(0,0,width,height);
+      receivers = Object.values(assignmentsObj || {});
+      const n = receivers.length;
       const cx=width/2, cy=height/2;
-      receivers = Object.values(assignmentsObj||{}); const n=receivers.length; if(!n) return;
-      const wedge = TAU/n; const radius = Math.min(width,height)*0.42;
-      const useInitials = n>24;
-      const baseFont = Math.max(12, Math.floor(Math.min(width,height)*(useInitials?0.055:0.06)));
-      const labelRadius = radius*0.72;
-
-      for (let i=0;i<n;i++){
-        const color = PALETTE[i%PALETTE.length];
-        const start=i*wedge, center=start+wedge/2;
-
-        ctx.beginPath(); ctx.moveTo(cx,cy);
-        for (let s=0;s<=32;s++){ const ang=start+(s/32)*wedge; const [x,y]=pointOnCircle(cx,cy,radius,ang); ctx.lineTo(x,y); }
-        ctx.closePath();
-        ctx.fillStyle=color; ctx.shadowColor='rgba(0,0,0,.10)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
-
-        ctx.strokeStyle='rgba(0,0,0,.22)'; ctx.lineWidth=2;
-        const [lx,ly]=pointOnCircle(cx,cy,radius,start); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.stroke();
-
-        const label = useInitials? initialsOf(receivers[i]) : receivers[i];
-        const [tx,ty]=pointOnCircle(cx,cy,labelRadius,center);
-        const arcLen = radius*wedge*0.85; let fontPx=baseFont; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`;
-        while (ctx.measureText(label).width>arcLen && fontPx>10){ fontPx--; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`; }
-
-        ctx.save(); ctx.translate(tx,ty); ctx.rotate(-center); ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.lineWidth=Math.max(2,Math.floor(fontPx/6)); ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(label,0,0);
-        ctx.fillStyle='#fff'; ctx.fillText(label,0,0); ctx.restore();
+      const radius=Math.min(width,height)*0.42;
+      if (!n){
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx,cy,radius,0,TAU);
+        ctx.fillStyle='#dce4ee'; ctx.fill();
+        ctx.strokeStyle='#cad5e2'; ctx.lineWidth=4; ctx.stroke();
+        ctx.restore();
+        return;
       }
+      const slice = TAU/n;
+      ctx.save();
+      ctx.beginPath();ctx.arc(cx,cy,radius+4,0,TAU);
+      ctx.fillStyle='#eaf0f5';ctx.fill();
+      ctx.strokeStyle='#ffffff';ctx.lineWidth=Math.max(3,width*.009);ctx.stroke();
 
-      ctx.beginPath(); ctx.arc(cx,cy,radius*0.07,0,TAU); ctx.fillStyle='#222'; ctx.fill();
+      for(let i=0;i<n;i++){
+        const start=i*slice, mid=start+slice/2;
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.arc(cx,cy,radius,start,start+slice);
+        ctx.closePath();
+        ctx.fillStyle=PALETTE[i%PALETTE.length]; ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.78)';
+        ctx.lineWidth=Math.max(1.2,width*.002);ctx.stroke();
+
+        const display=n>22?initialsOf(receivers[i]):receivers[i];
+        const distance=radius*(n>18?.67:.65);
+        const tx=cx+Math.cos(mid)*distance;
+        const ty=cy+Math.sin(mid)*distance;
+        let font=Math.min(21,Math.max(11,radius*.075));
+        const textArc=distance*slice*.83;
+        font=Math.max(10,Math.min(font,textArc*.88));
+        ctx.save();
+        ctx.translate(tx,ty);
+        ctx.rotate(mid>Math.PI/2&&mid<Math.PI*1.5?mid+Math.PI:mid);
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.font='650 '+font+'px system-ui, sans-serif';
+        ctx.fillStyle='#1d3650';
+        ctx.fillText(display,0,0,radius*.54);
+        ctx.restore();
+      }
+      ctx.beginPath();ctx.arc(cx,cy,radius*.112,0,TAU);
+      ctx.fillStyle='#f8fafc';ctx.fill();
+      ctx.strokeStyle='#ffffff';ctx.lineWidth=Math.max(3,radius*.022);ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,radius*.048,0,TAU);
+      ctx.fillStyle='#567ba2';ctx.fill();
+      ctx.restore();
     }
 
     let rafId=0, lastTime=0, stepAccum=0; const STEP=1/60;
@@ -1022,78 +1052,42 @@
       if (resizeCanvasToDisplaySize(wheelCanvas)){
         layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
       }
-      const cx=wheelCanvas.width/2, cy=wheelCanvas.height/2;
+      const w=wheelCanvas.width,h=wheelCanvas.height;
+      wheelCtx.clearRect(0,0,w,h);
+      const cx=w/2,cy=h/2;
+      wheelCtx.save();
+      wheelCtx.translate(cx,cy);
+      wheelCtx.rotate(currentAngle*Math.PI/180);
+      wheelCtx.drawImage(wheelCanvasOff,-cx,-cy);
+      wheelCtx.restore();
 
-      const bg = wheelCtx.createRadialGradient(cx,cy,0,cx,cy,Math.max(cx,cy));
-      bg.addColorStop(0,'#fcfcfe'); bg.addColorStop(1,'#e8eef6');
-      wheelCtx.fillStyle = bg; wheelCtx.fillRect(0,0,wheelCanvas.width, wheelCanvas.height);
-
-      wheelCtx.save(); wheelCtx.translate(cx,cy); wheelCtx.rotate(currentAngle*Math.PI/180);
-      wheelCtx.drawImage(wheelCanvasOff,-cx,-cy); wheelCtx.restore();
-
-      const pointerTop = wheelCanvas.height*0.10, pointerBase = wheelCanvas.height*0.18;
-      wheelCtx.beginPath(); wheelCtx.moveTo(cx,pointerBase); wheelCtx.lineTo(cx-26,pointerTop); wheelCtx.lineTo(cx+26,pointerTop);
-      wheelCtx.closePath(); wheelCtx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--pointer')||'#ff6b6b';
-      wheelCtx.shadowColor='rgba(0,0,0,.22)'; wheelCtx.shadowBlur=8; wheelCtx.fill(); wheelCtx.shadowBlur=0;
-
-      const hudFont = Math.max(14, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.05));
-      drawTextWithBox(wheelCtx, `Giver: ${giver || ''}`, cx, wheelCanvas.height * 0.07, hudFont);
-
-      if (state===STATE_POWER) drawPowerBar(cx, Math.floor(wheelCanvas.height*0.22));
-
-      if (state===STATE_WAIT){
-        hintEl.textContent = 'Ready. Tap / Click / Space to pick & open the power bar.';
-      } else if (state===STATE_POWER){
-        hintEl.textContent = `Set power: +${powerVal}. Tap / Click / Space to lock & spin.`;
-      } else if (state===STATE_SPIN){
-        hintEl.textContent = 'Spinning… Tap / Click / Space to force-stop.';
-      } else if (state===STATE_RESULT){
-        hintEl.textContent = 'Result shown. Tap / Click / Space for the next pair.';
-        if (giver && chosenReceiver){
-          const note = `${giver} \u2192 ${chosenReceiver}`;
-          const noteFont = Math.max(16, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.06));
-          drawTextWithBox(wheelCtx, note, cx, wheelCanvas.height * 0.90, noteFont);
-        }
+      const total=assignments ? Object.keys(assignments).length : 0;
+      const finished=total-pairs.length+(state===STATE_RESULT?1:0);
+      $('#stageProgress').textContent=total
+        ? (pairs.length ? 'REVEAL '+String(Math.min(total,finished+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0') : 'EXCHANGE COMPLETE')
+        : 'READY TO START';
+      $('#stageGiver').textContent=giver || (total && !pairs.length ? 'All matches revealed' : 'Ready to spin');
+      $('#stageLabel').textContent=total && !pairs.length ? '' : giver ? 'Giving a gift' : 'Next up';
+      powerPanel.classList.toggle('hidden',state!==STATE_POWER);
+      resultPanel.classList.toggle('hidden',state!==STATE_RESULT);
+      if(state===STATE_POWER){
+        powerFill.style.width=(powerVal/POWER_MAX*100)+'%';
+        powerNumber.innerHTML=powerVal+' <small>/ '+POWER_MAX+'</small>';
+        hintEl.textContent='Power rises and falls. Stop it when you like.';
+        spinAction.textContent='Spin';
+      }else if(state===STATE_SPIN){
+        hintEl.textContent='Spinning…';
+        spinAction.textContent='Stop spin';
+      }else if(state===STATE_RESULT){
+        $('#resultGiver').textContent=giver;
+        $('#resultRecipient').textContent=chosenReceiver;
+        hintEl.textContent='Match revealed.';
+        spinAction.textContent=pairs.length===1?'Finish':'Next person';
+      }else{
+        hintEl.textContent=total && !pairs.length ? 'All assignments revealed.' : 'Press Start to select the first giver.';
+        spinAction.textContent=total && !pairs.length ? 'Completed' : 'Start';
       }
-    }
-
-    function drawPowerBar(cx, y){
-      const ctx = wheelCtx;
-      const W = Math.min(wheelCanvas.width*0.8, 700);
-      const H = 22; const r = H/2; const x = cx - W/2;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(x+r, y); ctx.lineTo(x+W-r, y);
-      ctx.arc(x+W-r, y+r, r, -Math.PI/2, Math.PI/2);
-      ctx.lineTo(x+r, y+H);
-      ctx.arc(x+r, y+r, r, Math.PI/2, -Math.PI/2);
-      ctx.closePath(); ctx.fillStyle = 'white';
-      ctx.shadowColor='rgba(0,0,0,.08)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
-      ctx.strokeStyle = '#d6dce7'; ctx.stroke();
-
-      const grad = ctx.createLinearGradient(x, y, x+W, y);
-      grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
-      grad.addColorStop(0.5, getComputedStyle(document.documentElement).getPropertyValue('--barMid') || '#ff4d4d');
-      grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
-
-      ctx.beginPath(); ctx.rect(x+2, y+2, (W-4)*p, H-4); ctx.fillStyle = grad; ctx.fill();
-
-      ctx.globalAlpha=.45; ctx.strokeStyle='#9fb0cf';
-      for (let k=0;k<=30;k++){
-        const tx = x + (W) * (k/30);
-        const len = (k%5===0)? 10 : 6;
-        ctx.beginPath(); ctx.moveTo(tx, y - len/2); ctx.lineTo(tx, y + H + len/2); ctx.stroke();
-      }
-      ctx.globalAlpha=1;
-
-      const livePower = powerFromPos(p);
-      const m = livePower / 30;
-      ctx.beginPath(); ctx.arc(x + W*p, y + H/2, H*0.55, 0, Math.PI*2);
-      ctx.fillStyle = `hsl(${120*(1-m)}, 85%, 50%)`;
-      ctx.shadowColor = 'var(--barDotShadow)'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-
-      ctx.restore();
+      spinAction.disabled=!pairs.length&&state===STATE_WAIT;
     }
 
     function resetSpinner(assignmentsObj){
