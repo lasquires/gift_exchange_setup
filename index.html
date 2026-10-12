@@ -388,7 +388,10 @@
     .spin-button:hover:not(:disabled) {background:linear-gradient(180deg,#ffe6b4,#f1bb66);color:#30210e}
     .spin-button:disabled {cursor:default;opacity:.8;transform:none}
     .stage-shortcut {font-size:12px;color:#9cb1c7;text-align:center}
-    .power-panel {width:100%}
+    .power-panel {width:100%;min-height:53px}
+    /* Keep the bar's layout space when idle/result so the wheel doesn't
+       resize or shift when Spin is pressed. */
+    #spinnerArea .power-panel.hidden {display:block!important;visibility:hidden;pointer-events:none}
     .power-heading {display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:660;color:#c0cfdf;margin-bottom:12px}
     .power-heading strong {font-size:22px;color:#fff;font-variant-numeric:tabular-nums}
     .power-heading strong small {font-size:12px;color:#94a8bd;font-weight:500}
@@ -402,7 +405,7 @@
       .wheel-shell {width:min(82vw,calc(100dvh - 345px),540px)}
       .stage-side {max-width:600px;gap:15px;align-self:end}
       .stage-intro {gap:3px}
-      .stage-announcement {flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 9px;min-height:0}
+      .stage-announcement {flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 9px;min-height:76px}
       .live-giver,.live-recipient {font-size:clamp(21px,5vw,35px);letter-spacing:-.7px}
       .live-verb {font-size:clamp(15px,3vw,19px);padding:0}
       .stage-controls {min-height:0;gap:9px}
