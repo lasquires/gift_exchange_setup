@@ -858,6 +858,9 @@
     function powerFromPos(pos){ const c=pos-0.5, n=1-4*c*c; return Math.floor(POWER_MAX*Math.max(0,n)+1e-6); }
 
     let currentAngle=0, speed=0, receivers=[];
+    // The visible wedges can lag the upcoming pair list until Spin is pressed.
+    // This prevents a recipient-dependent wheel redraw during the power phase.
+    let displayedPairs=[];
     const wheelCanvasOff = document.createElement('canvas');
     const wheelCtxOff = wheelCanvasOff.getContext('2d');
 
@@ -1045,7 +1048,7 @@
 
     function render(){
       if(resizeCanvasToDisplaySize(wheelCanvas)){
-        layoutWheel(Object.fromEntries(pairs),wheelCanvas.width,wheelCanvas.height);
+        layoutWheel(Object.fromEntries(displayedPairs),wheelCanvas.width,wheelCanvas.height);
       }
       const w=wheelCanvas.width,h=wheelCanvas.height;
       wheelCtx.clearRect(0,0,w,h);
@@ -1101,7 +1104,8 @@
       state = STATE_WAIT; giver=''; chosenReceiver=''; currentAngle=0; speed=0;
       p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
       prevTickIndex = null;       // reset tick index
-      layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height); render();
+      displayedPairs=pairs.slice();
+      layoutWheel(Object.fromEntries(displayedPairs), wheelCanvas.width, wheelCanvas.height); render();
     }
 
     // ---------- Advance flow (Space / Click / Tap) ----------
@@ -1135,9 +1139,9 @@
           const j = Math.floor(Math.random() * (i + 1));
           [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
         }
-        // The next wheel retains its physical orientation. No position jump
-        // occurs between selecting the next giver and pressing Spin.
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+        // Prepare the next list, but keep the previous wheel on screen while
+        // the power meter runs. The actual replacement happens on Spin.
+        // No pre-spin wheel redraw or starting-angle change is painted here.
         // 4) pick next pair
         iPair = 0;
         [giver, chosenReceiver] = pairs[iPair];
@@ -1193,30 +1197,36 @@
     spinnerArea.addEventListener('click', handlePointerAdvance);
 
     function spinWithPower(bonus){
+      // All of this runs synchronously in the Spin click event.
+      // Updating wedges, repositioning, and taking the first movement step
+      // happen before ONE canvas draw, so the pre-position is never shown.
+      displayedPairs=pairs.slice();
+      layoutWheel(Object.fromEntries(displayedPairs),wheelCanvas.width,wheelCanvas.height);
+
       const n=Math.max(1,receivers.length);
       const sign=Math.random()<.5?-1:1;
       const randInt=Math.random();
       const jitter=sign*((.5-randInt)/(2*n));
       const jitterDeg=jitter*360;
+
+      // Original wheel's starting angle, power and exponential slowdown.
       const totalN=3.25+bonus;
+      const totalAngle=totalN*360;
+      const speed0=totalAngle*(1-slowdownFactor);
       const wedgeDeg=360/n;
       const idx=receivers.indexOf(chosenReceiver);
-      const targetFinal=idx<0?Math.random()*360:
-        normDeg(POINTER_DEG-(idx+.5)*wedgeDeg);
-
-      // Preserve the original 0.98 decay and 3.25 + power revolution count.
-      // Calculate travel relative to the CURRENT displayed angle, so the
-      // wheel never jumps to a target-dependent position before the spin.
-      const baseTravel=totalN*360;
-      const alignmentTravel=normDeg(targetFinal+jitterDeg-normDeg(currentAngle+baseTravel));
-      const totalAngle=baseTravel+alignmentTravel;
-
+      if(idx<0)currentAngle=0;
+      else{
+        const centerDeg=(idx+.5)*wedgeDeg;
+        const targetFinal=normDeg(POINTER_DEG-centerDeg);
+        currentAngle=normDeg(targetFinal-totalAngle)+jitterDeg;
+      }
       prevTickIndex=pointerIndex();
-      speed=totalAngle*(1-slowdownFactor);
+      speed=speed0;
       state=STATE_SPIN;
 
-      // Apply an actual physics step and draw inside THIS click handler.
-      // There is no stationary or reset frame between pressing Spin and motion.
+      // Do not paint a repositioned but stationary wheel. Integrate the
+      // first real physics step now, then paint only the moving state.
       advanceWheelStep();
       render();
       if(!rafId){lastTime=0;stepAccum=0;rafId=requestAnimationFrame(loop);}
@@ -1321,7 +1331,7 @@
     // Keep crisp on resize
     new ResizeObserver(()=>{
       if (!spinnerArea.classList.contains('hidden')){
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+        layoutWheel(Object.fromEntries(displayedPairs), wheelCanvas.width, wheelCanvas.height);
         render();
       }
     }).observe(wheelCanvas);
