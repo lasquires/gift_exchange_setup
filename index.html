@@ -1146,9 +1146,8 @@
         spinWithPower(bonus);
 
       } else if (state===STATE_SPIN){
-        state = STATE_RESULT;
-        pendingReset = true;
-        lastResultIndex = iPair;
+        // Continue the natural slowdown; stopping mid-wedge could reveal a different name.
+        return;
       }
     }
 
@@ -1186,32 +1185,37 @@
       toggleAssignmentList.textContent=hidden?'Show matches':'Hide matches';
       toggleAssignmentList.setAttribute('aria-expanded',String(!hidden));
     });
+    // A touch already produces a click. Listening for both would skip a state
+    // and make one tap appear to start a spin prematurely.
     spinnerArea.addEventListener('click', handlePointerAdvance);
-    spinnerArea.addEventListener('touchstart', handlePointerAdvance, {passive:false});
 
     function spinWithPower(bonus){
-      const n = Math.max(1, receivers.length);
-      const sign = Math.random() < 0.5 ? -1 : 1;
-      const randInt = Math.random();
-      const jitter = sign * ((.5 - randInt) / (2 * n));
-      const jitterDeg = jitter * 360;
+      const n=Math.max(1,receivers.length);
+      const sign=Math.random()<.5?-1:1;
+      const randInt=Math.random();
+      const jitter=sign*((.5-randInt)/(2*n));
+      const jitterDeg=jitter*360;
+      const totalN=3.25+bonus;
+      const wedgeDeg=360/n;
+      const idx=receivers.indexOf(chosenReceiver);
+      const targetFinal=idx<0?Math.random()*360:
+        normDeg(POINTER_DEG-(idx+.5)*wedgeDeg);
 
-      // Original exponential slowdown, power and quarter-slice jitter.
-      // Travel to the assigned slice instead of secretly pre-rotating the wheel.
-      const totalN = 3.25 + bonus;
-      const wedgeDeg = 360 / n;
-      const idx = receivers.indexOf(chosenReceiver);
-      const targetFinal = idx < 0 ? Math.random()*360 :
-        normDeg(POINTER_DEG - (idx + .5) * wedgeDeg);
+      // Preserve the original 0.98 decay and 3.25 + power revolution count.
+      // Calculate travel relative to the CURRENT displayed angle, so the
+      // wheel never jumps to a target-dependent position before the spin.
       const baseTravel=totalN*360;
-      const alignmentTravel=normDeg(targetFinal + jitterDeg - normDeg(baseTravel));
-      const totalAngle=baseTravel + alignmentTravel;
+      const alignmentTravel=normDeg(targetFinal+jitterDeg-normDeg(currentAngle+baseTravel));
+      const totalAngle=baseTravel+alignmentTravel;
 
-      // Reset immediately before motion. No targeted starting angle is rendered.
-      currentAngle=0;
-      prevTickIndex=null;
+      prevTickIndex=pointerIndex();
       speed=totalAngle*(1-slowdownFactor);
       state=STATE_SPIN;
+
+      // Apply an actual physics step and draw inside THIS click handler.
+      // There is no stationary or reset frame between pressing Spin and motion.
+      advanceWheelStep();
+      render();
       if(!rafId){lastTime=0;stepAccum=0;rafId=requestAnimationFrame(loop);}
     }
 
