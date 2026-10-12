@@ -3,123 +3,554 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎁 Gift Exchange Spinner</title>
+  <title>Gift Exchange</title>
   <style>
-    :root {
-      --bg: #f7f7f7;
-      --ink: #222;
-      --accent: #6f95ae;
-      --danger: #d33;
-      --pointer: #ff6b6b;
-      --hud: #111;
 
-      /* Power bar */
+    :root {
+      color-scheme: light;
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --surface-soft: #f7f9fc;
+      --ink: #19283c;
+      --muted: #69798e;
+      --line: #dce4ee;
+      --primary: #285aaf;
+      --primary-hover: #1f498f;
+      --ring: rgba(45, 100, 190, .18);
+      --accent: #dce9f8;
+      --pointer: #e9516b;
+      --danger: #b43b51;
+      --hud: #111;
       --barTrack: #e8ecf5;
       --barEdge: #3cc96b;
-      --barMid:  #ff4d4d;
+      --barMid: #ff4d4d;
       --barDotShadow: rgba(0,0,0,.15);
     }
-    html, body {
-      height: 100%;
+    * { box-sizing: border-box; }
+    html { min-height: 100%; }
+    body {
       margin: 0;
+      min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      padding: 1rem clamp(1rem, 4vw, 2rem);
-      border-bottom: 1px solid #ddd;
-      background: #fff8;
-      position: sticky; top: 0; backdrop-filter: blur(6px);
+    button, input, textarea { font: inherit; }
+    button, .button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    [hidden], .hidden { display: none !important; }
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
     }
-    h1 { margin: 0 0 .5rem 0; font-size: clamp(1.25rem, 2.2vw, 1.75rem); }
-    .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
-    label { font-weight: 600; }
+    .site-header-inner {
+      max-width: 1120px;
+      margin: auto;
+      padding: 21px 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+    .site-header h1 {
+      margin: 0;
+      font-size: 23px;
+      font-weight: 780;
+      line-height: 1.2;
+      letter-spacing: -.85px;
+    }
+    .site-header .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .site-header .version {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .page {
+      width: min(1120px, calc(100% - 48px));
+      margin: 30px auto 70px;
+    }
+    .setup-card, .canvas-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(22, 39, 67, .045);
+    }
+    .setup-card { padding: 27px 29px 24px; }
+    .section-title {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 22px;
+    }
+    .section-title h2 {
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -.48px;
+      margin: 0;
+    }
+    .section-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .setup-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(310px, .88fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+    .families { min-width: 0; }
+    .field { margin-bottom: 20px; }
+    .field label, .rules-title {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #334761;
+      font-weight: 730;
+    }
+    .field-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: -2px 0 11px;
+    }
     input[type="text"], textarea.members {
-      padding: .8rem 1rem; border: 1px solid #cfd4dc; border-radius: .75rem; background: #fff;
-      flex: 1 1 260px; min-width: 260px; outline: none; box-shadow: 0 1px 0 rgba(0,0,0,.02);
-      transition: box-shadow .15s ease, border-color .15s ease; font-size: 0.98rem; line-height: 1.4;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #ccd7e4;
+      border-radius: 10px;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
+    input[type="text"] { min-height: 46px; }
+    textarea.members {
+      min-height: 224px;
+      resize: vertical;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+    input[type="text"]::placeholder, textarea::placeholder { color: #8b98a9; }
     input[type="text"]:focus, textarea.members:focus {
-      border-color: #a7b7c6; box-shadow: 0 0 0 3px rgba(111,149,174,.15);
+      border-color: #5885ca;
+      box-shadow: 0 0 0 4px var(--ring);
     }
-    .chk { display: inline-flex; gap: .45rem; align-items: center; padding: .25rem .5rem; }
-    .families { padding: 1rem clamp(1rem, 4vw, 2rem); display: grid; gap: .5rem; }
-    .controls { padding: 0 clamp(1rem, 4vw, 2rem) 1rem; display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
-    button { border: 0; background: var(--ink); color: #fff; padding: .7rem 1rem; border-radius: .7rem; font-weight: 700; cursor: pointer; }
-    button.secondary { background: #666; }
-    .button.ghost, button.ghost { background: #fff; color: var(--ink); border: 1px solid #ddd; }
-    .canvas-wrap { display:grid; grid-template-columns:1fr; grid-template-rows:minmax(320px,65vh) auto; gap:.5rem; padding:0 clamp(1rem,4vw,2rem) 1.25rem; }
-    canvas { width:100%; height:100%; background: var(--accent); border-radius:1.2rem; box-shadow:0 10px 30px rgba(0,0,0,.08) inset; }
-    .hint { font-size:.95rem; color:#444; background:#fff; border:1px dashed #ddd; padding:.6rem .8rem; border-radius:.7rem; user-select:none; }
-    .hidden { display:none !important; }
-    .grow { flex:1; }
-    .uploadRow { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
-    .mini { font-size:.85rem; color:#444; }
+    button:focus-visible, .button:focus-visible, .dropzone:focus-visible, label:has(input:focus-visible), input:focus-visible {
+      outline: 3px solid #a3c5ff;
+      outline-offset: 2px;
+    }
+    .rules-panel {
+      background: var(--surface-soft);
+      border: 1px solid #e6ecf4;
+      border-radius: 13px;
+      padding: 20px;
+      min-width: 0;
+    }
+    .rules-title { margin-bottom: 14px; font-size: 14px; }
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 12px 0;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .check-row + .check-row { border-top: 1px solid #e6ebf2; }
+    .check-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin: 2px 0 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .check-copy { display: flex; flex-direction: column; gap: 1px; }
+    .check-copy strong { font-size: 13px; font-weight: 690; }
+    .check-copy small { font-size: 12px; color: var(--muted); }
+    .rule-divider {
+      border: 0;
+      height: 1px;
+      margin: 14px 0 17px;
+      background: #dfe6ee;
+    }
+    .uploadRow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px 11px;
+      margin-top: 10px;
+      min-width: 0;
+    }
+    .uploadRow input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .mini { font-size: 12px; color: var(--muted); }
     .dropzone {
-      border:1px dashed #cbd5e1; border-radius:.6rem; padding:.4rem .6rem; background:#fff; color:#333;
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      max-width: 100%;
+      border: 1px dashed #bdcada;
+      border-radius: 7px;
+      background: white;
+      padding: 5px 9px;
+      color: #66768b;
+      font-size: 11px;
+      cursor: default;
     }
-    .dropzone.drag { border-color:#6f95ae; background:#eef6ff; }
-
-    /* Fullscreen: show only the canvas area */
-    .canvas-wrap:fullscreen { padding: 0; grid-template-rows: 1fr; }
+    .dropzone.drag { background: #e4f0ff; border-color: #5c92d9; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 23px;
+      margin-top: 6px;
+      border-top: 1px solid var(--line);
+    }
+    .grow { flex: 1; }
+    button, .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 42px;
+      padding: 10px 17px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-weight: 675;
+      font-size: 13px;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    button:hover, .button:hover { background: var(--primary-hover); }
+    button:active, .button:active { transform: translateY(1px); }
+    button.secondary { background: #17364f; }
+    button.secondary:hover { background: #102a40; }
+    button.ghost, .button.ghost {
+      border-color: #d4dfea;
+      background: white;
+      color: #38516a;
+    }
+    button.ghost:hover, .button.ghost:hover { background: #edf3fa; }
+    .rules-panel button.ghost {
+      padding: 7px 11px;
+      min-height: 34px;
+      font-size: 12px;
+    }
+    .canvas-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: clamp(420px, 65vh, 720px) auto;
+      gap: 13px;
+      margin-top: 20px;
+      padding: 15px;
+      overflow: hidden;
+    }
+    canvas#wheel {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background: var(--accent);
+      touch-action: manipulation;
+    }
+    .hint {
+      padding: 5px 7px 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      user-select: none;
+    }
+    .canvas-wrap:fullscreen {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: #e8eef6;
+      grid-template-rows: minmax(0, 1fr);
+    }
     .canvas-wrap:fullscreen canvas { border-radius: 0; }
     .canvas-wrap:fullscreen .hint { display: none; }
+    @media (max-width: 760px) {
+      .site-header-inner { padding: 18px 19px; }
+      .site-header h1 { font-size: 21px; }
+      .site-header .version { display: none; }
+      .page { width: min(100% - 26px, 600px); margin: 18px auto 38px; }
+      .setup-card { padding: 21px 17px 18px; border-radius: 14px; }
+      .section-title { margin-bottom: 19px; }
+      .setup-grid { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+      .rules-panel { padding: 17px; margin-bottom: 13px; }
+      .controls { gap: 9px; }
+      .controls #generate { flex: 1 1 100%; }
+      .controls .grow { display: none; }
+      .canvas-wrap { padding: 9px; grid-template-rows: clamp(370px, 56vh, 590px) auto; }
+    }
+    @media (max-width: 440px) {
+      .page { width: calc(100% - 20px); }
+      .setup-card { padding: 18px 14px; }
+      textarea.members { min-height: 190px; }
+      .canvas-wrap { grid-template-rows: clamp(345px, 52vh, 460px) auto; }
+      .uploadRow { gap: 6px 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      button, .button, input[type="text"], textarea.members { transition: none; }
+    }
+
+
+    /* Spinner stage — a separate, viewport-sized screen. */
+    :root { --bg:#f5f6f9; --ink:#18273a; --primary:#305f9e; --primary-hover:#244b81; --line:#dce3ed; }
+    .assignments-card {margin-top:16px;padding:20px 24px;border:1px solid var(--line);border-radius:15px;background:white;box-shadow:0 8px 32px #24364e08}
+    .assignments-summary {display:flex;justify-content:space-between;gap:15px;align-items:center}
+    .assignments-summary h2 {margin:0 0 3px;font-size:17px;font-weight:750}
+    .assignments-summary p {margin:0;font-size:13px;color:#78869a}
+    .assignment-list {margin:19px 0 0;padding:16px 16px 5px 36px;border-top:1px solid #e7ebf2;columns:2;column-gap:36px;font-size:14px}
+    .assignment-list li {margin-bottom:11px;break-inside:avoid}
+    body.stage-active {overflow:hidden}
+    body.stage-active > .site-header,body.stage-active > .page > .setup-card,body.stage-active > .page > .assignments-card {display:none!important}
+    body.stage-active > .page {width:100%;max-width:none;margin:0;padding:0}
+    #spinnerArea.canvas-wrap {
+      position:fixed;inset:0;z-index:30;width:100%;height:100dvh;
+      display:flex;flex-direction:column;overflow:hidden;box-shadow:none;
+      padding:0;margin:0;border:none;border-radius:0;color:#edf4fb;
+      background:radial-gradient(ellipse at 35% 52%,#29415b 0%,#172739 50%,#0e1928 100%);
+    }
+    .stage-top {
+      display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
+      padding:13px clamp(17px,3vw,44px);min-height:68px;
+      border-bottom:1px solid #ffffff1c;flex:0 0 auto;
+    }
+    .stage-top button {width:max-content;min-height:39px;border:1px solid #ffffff3a;background:#ffffff0d;color:#eaf2fa;border-radius:9px;font-size:13px;padding:8px 14px;box-shadow:none}
+    .stage-top button:hover {background:#ffffff20}
+    .back-control {justify-self:start}.back-control span {font-size:19px;margin-right:8px}
+    .stage-caption {font-size:12px;color:#b9c7d6;letter-spacing:.12em;text-transform:uppercase;font-weight:740;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32vw}
+    .stage-fullscreen {justify-self:end}
+    .stage-content {
+      width:min(100%,1370px);min-height:0;flex:1;
+      display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);
+      gap:clamp(28px,4vw,70px);align-items:center;
+      padding:clamp(12px,3vh,28px) clamp(24px,4.5vw,74px);
+      margin:0 auto;
+    }
+    .wheel-shell {
+      display:grid;place-items:center;width:min(100%,calc(100dvh - 118px),710px);
+      height:auto;aspect-ratio:1;position:relative;justify-self:center;
+      filter:drop-shadow(0 28px 25px #0006);min-width:0;min-height:0;
+    }
+    .wheel-frame {position:relative;width:100%;height:100%;aspect-ratio:1;display:block}
+    canvas#wheel {
+      display:block;width:100%;height:100%;border-radius:50%;
+      background:transparent;cursor:pointer;touch-action:manipulation
+    }
+    .wheel-pointer {
+      position:absolute;z-index:5;pointer-events:none;left:50%;top:2.8%;
+      transform:translate(-50%,-14%);width:clamp(31px,4vw,52px);height:clamp(38px,4.5vw,60px);
+      background:linear-gradient(90deg,#9a631e,#f4d28c 46%,#fff2bc 53%,#af7929);
+      clip-path:polygon(0 0,100% 0,50% 100%);filter:drop-shadow(0 4px 3px #050a12a6);
+    }
+    .stage-side {
+      width:100%;max-width:480px;min-width:0;display:flex;flex-direction:column;
+      gap:clamp(30px,6vh,70px);align-self:center;justify-self:center;
+    }
+    .stage-intro {display:flex;flex-direction:column;align-items:flex-start;gap:13px;min-width:0}
+    .stage-eyebrow {font-size:12px;font-weight:800;color:#e5b96b;letter-spacing:.17em}
+    .stage-label {font-size:14px;color:#adc2d7;margin-top:4px;font-weight:530}
+    .stage-announcement {display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.13;min-height:148px;max-width:100%}
+    .live-giver,.live-recipient {display:block;max-width:100%;overflow-wrap:anywhere;font-size:clamp(30px,3.1vw,48px);font-weight:830;letter-spacing:-1.5px}
+    .live-giver {color:#fff}
+    .live-verb {font-size:clamp(17px,1.6vw,23px);font-weight:500;color:#b4c6d9;padding:5px 0}
+    .live-recipient {color:#f4c56d;min-height:1em}
+    .live-verb:empty,.live-recipient:empty {display:none}
+    .live-recipient.is-rolling {color:#f9d88d}
+    .stage-controls {display:flex;flex-direction:column;align-items:stretch;gap:15px;width:100%;min-height:150px;text-align:left}
+    #spinnerArea .hint {margin:0;padding:0;color:#afc0d0;font-size:13px;min-height:20px;text-align:left;border:none;background:none}
+    .spin-button {
+      width:100%;min-height:54px;justify-content:center;
+      background:linear-gradient(180deg,#f4ce87,#e4a842);border:1px solid #f5dca7;
+      border-radius:11px;color:#30210e;box-shadow:0 7px 17px #0004;font-size:16px;font-weight:800
+    }
+    .spin-button:hover:not(:disabled) {background:linear-gradient(180deg,#ffe6b4,#f1bb66);color:#30210e}
+    .spin-button:disabled {cursor:default;opacity:.8;transform:none}
+    .stage-shortcut {font-size:12px;color:#9cb1c7;text-align:center}
+    .power-panel {width:100%;min-height:53px}
+    /* Keep the bar's layout space when idle/result so the wheel doesn't
+       resize or shift when Spin is pressed. */
+    #spinnerArea .power-panel.hidden {display:block!important;visibility:hidden;pointer-events:none}
+    .power-heading {display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:660;color:#c0cfdf;margin-bottom:12px}
+    .power-heading strong {font-size:22px;color:#fff;font-variant-numeric:tabular-nums}
+    .power-heading strong small {font-size:12px;color:#94a8bd;font-weight:500}
+    .power-track {height:16px;border-radius:999px;background:#ffffff27;border:1px solid #ffffff25;box-shadow:inset 0 2px 5px #0004;overflow:hidden}
+    .power-fill {height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#ebb45a,#ffdb90);box-shadow:0 0 12px #efbe63a0;transition:none}
+    #spinnerArea:fullscreen {display:flex;width:100%;height:100%;max-width:none;padding:0;border-radius:0}
+    #spinnerArea:fullscreen .hint {display:block}
+    @media(max-width:900px) {
+      .stage-top {min-height:58px;padding:9px 15px}
+      .stage-content {grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:12px;padding:8px 15px 18px}
+      .wheel-shell {width:min(82vw,calc(100dvh - 345px),540px)}
+      .stage-side {max-width:600px;gap:15px;align-self:end}
+      .stage-intro {gap:3px}
+      .stage-announcement {flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 9px;min-height:76px}
+      .live-giver,.live-recipient {font-size:clamp(21px,5vw,35px);letter-spacing:-.7px}
+      .live-verb {font-size:clamp(15px,3vw,19px);padding:0}
+      .stage-controls {min-height:0;gap:9px}
+      .spin-button {min-height:45px}
+      .stage-shortcut {display:none}
+      #spinnerArea .hint {font-size:12px}
+      .assignment-list {columns:1}
+    }
+    @media(max-width:560px) {
+      .stage-top .stage-fullscreen span {display:none}
+      .stage-top {grid-template-columns:auto 1fr auto;gap:8px}
+      .stage-caption {justify-self:center;max-width:33vw;font-size:10px;letter-spacing:.04em}
+      .back-control {font-size:12px!important}
+      .stage-content {gap:6px;padding:6px 13px 11px}
+      .wheel-shell {width:min(91vw,calc(100dvh - 318px),455px)}
+      .stage-eyebrow {font-size:10px}
+      .stage-label {font-size:12px}
+      .stage-side {gap:8px}
+      .stage-controls {gap:7px}
+      .spin-button {min-height:42px}
+      .power-heading {margin-bottom:6px}
+    }
+    @media(max-height:550px) and (min-width:901px) {
+      .stage-top {min-height:48px;padding-block:5px}
+      .stage-content {padding-block:6px}
+      .wheel-shell {width:min(100%,calc(100dvh - 76px),670px)}
+      .stage-side {gap:18px}
+    }
+    @media(prefers-reduced-motion:reduce) {.spin-button {transition:none}}
   </style>
 </head>
 <body>
-  <header>
-    <h1>Gift Exchange Setup</h1>
-
-    <div class="row">
-      <label for="occasion">Occasion</label>
-      <input id="occasion" type="text" placeholder="Christmas 2025" />
-      <span class="chk"><input id="intra" type="checkbox"><label for="intra">Intrafamilial</label></span>
-      <span class="chk"><input id="recip" type="checkbox"><label for="recip">Reciprocal</label></span>
-      <!-- No-Repeat checkbox removed; avoid list implies no-repeat -->
-    </div>
-
-    <!-- Avoid/No-Repeat importer -->
-    <div class="uploadRow">
-      <input id="avoidFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
-      <button id="uploadAvoid" class="ghost">Import Avoid Pairs</button>
-      <span id="avoidSummary" class="mini">No avoid pairs loaded.</span>
-      <span id="avoidDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
-    </div>
-
-    <!-- Pre-assigned importer (hidden until hotkey, #force, or secret toggle) -->
-    <div id="forceRow" class="uploadRow hidden">
-      <input id="forceFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
-      <button id="uploadForce" class="ghost">Import Other Pairs</button>
-      <span id="forceSummary" class="mini">No pairs loaded.</span>
-      <span id="forceDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div>
+        <h1>Gift Exchange</h1>
+        <p class="subtitle">Set up your exchange and spin to reveal matches.</p>
+      </div>
+      <span class="version">Browser-only · No sign-in</span>
     </div>
   </header>
 
-  <section class="families" id="families">
-    <label for="familiesBox">Families</label>
-    <textarea id="familiesBox" class="members" rows="8" placeholder="Put each family on a separate line and separate each person with a comma. 
-(Family name is optional as seen below)
-Smith: Alice, Bob, Carol
-Dave, Erin
-Mateo, Sofia, Lucia
-Kim: Jiho, Yuna
-Aarav, Diya, Kavya"></textarea>
-  </section>
+  <main class="page">
+    <section class="setup-card" aria-labelledby="setupTitle">
+      <div class="section-title">
+        <h2 id="setupTitle">Setup</h2>
+        <p>Add participants, choose rules, and generate assignments.</p>
+      </div>
+      <div class="setup-grid">
+        <section class="families" id="families">
+          <div class="field">
+            <label for="occasion">Occasion</label>
+            <input id="occasion" type="text" placeholder="Christmas 2026" />
+          </div>
+          <div class="field">
+            <label for="familiesBox">Families / participants</label>
+            <p class="field-note">One family per line. Separate people with commas.</p>
+            <textarea id="familiesBox" class="members" rows="8" placeholder="Smith: Alice, Bob, Carol&#10;Johnson: Dave, Erin&#10;Jones: Mateo, Sofia, Lucia"></textarea>
+          </div>
+        </section>
+        <aside class="rules-panel" aria-label="Pairing rules">
+          <div class="rules-title">Pairing rules</div>
+          <label class="check-row" for="intra">
+            <input id="intra" type="checkbox" />
+            <span class="check-copy">
+              <strong>Allow same-family pairs</strong>
+              <small>Off by default</small>
+            </span>
+          </label>
+          <label class="check-row" for="recip">
+            <input id="recip" type="checkbox" />
+            <span class="check-copy">
+              <strong>Allow reciprocal pairs</strong>
+              <small>Let two people give to each other</small>
+            </span>
+          </label>
+          <hr class="rule-divider" />
+          <div class="rules-title">Past assignments</div>
+          <div class="mini">Exclude previous giver → recipient pairs.</div>
+          <div class="uploadRow">
+            <input id="avoidFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
+            <button id="uploadAvoid" class="ghost" type="button">Import exclusions</button>
+            <span id="avoidSummary" class="mini">No avoid pairs loaded.</span>
+            <span id="avoidDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
+          </div>
+          <div id="forceRow" class="uploadRow hidden">
+            <input id="forceFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
+            <button id="uploadForce" class="ghost" type="button">Import other pairs</button>
+            <span id="forceSummary" class="mini">No pairs loaded.</span>
+            <span id="forceDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
+          </div>
+        </aside>
+      </div>
+      <div class="controls">
+        <button id="generate" type="button">Generate assignments</button>
+        <a id="downloadLink" class="button ghost hidden" download>Download assignments</a>
+        <span class="grow"></span>
+        <button id="showSpinner" type="button" class="secondary hidden">Show spinner</button>
+        <button id="resetAll" type="button" class="ghost">Reset</button>
+      </div>
+    </section>
+    <section class="assignments-card hidden" id="assignmentsCard" aria-labelledby="assignmentsTitle">
+      <div class="assignments-summary">
+        <div><h2 id="assignmentsTitle">Assignments ready</h2><p id="assignmentsCount">Matches generated</p></div>
+        <button type="button" class="ghost" id="toggleAssignmentList" aria-expanded="false">Show matches</button>
+      </div>
+      <ol id="assignmentList" class="assignment-list hidden"></ol>
+    </section>
 
-  <div class="controls">
-    <button id="generate">Generate Assignments</button>
-    <a id="downloadLink" class="button ghost hidden" download>Download Assignments</a>
-    <span class="grow"></span>
-    <button id="showSpinner" class="secondary hidden">Show Spinner</button>
-    <button id="fsToggle" class="ghost hidden" title="Toggle Fullscreen (F)">Fullscreen</button>
-    <button id="resetAll" class="ghost">Reset</button>
-  </div>
-
-  <section class="canvas-wrap hidden" id="spinnerArea" aria-label="Spin area (tap / click / press space)">
-    <canvas id="wheel"></canvas>
-    <div class="hint" id="hint"></div>
-  </section>
+    <section class="canvas-wrap hidden" id="spinnerArea" aria-label="Gift exchange spinner" role="region">
+      <div class="stage-top">
+        <button type="button" class="back-control" id="backToSetup"><span aria-hidden="true">←</span> Back to assignments</button>
+        <div class="stage-caption" id="stageOccasion">Gift exchange</div>
+        <button type="button" class="stage-fullscreen" id="fsToggle" title="Toggle Fullscreen (F)">⛶ <span>Fullscreen</span></button>
+      </div>
+      <div class="stage-content">
+        <div class="wheel-shell" id="wheelShell">
+          <div class="wheel-frame">
+            <canvas id="wheel" aria-label="Wheel of gift recipients"></canvas>
+            <div class="wheel-pointer" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="stage-side">
+          <div class="stage-intro">
+            <div class="stage-eyebrow" id="stageProgress">READY TO START</div>
+            <div class="stage-label" id="stageLabel">Next up</div>
+            <div class="stage-announcement" id="stageAnnouncement">
+              <span class="live-giver" id="liveGiver">Ready to spin</span>
+              <span class="live-verb" id="liveVerb"></span>
+              <strong class="live-recipient" id="liveRecipient"></strong>
+            </div>
+          </div>
+          <div class="stage-controls">
+            <div class="power-panel hidden" id="powerPanel" aria-label="Spin power">
+              <div class="power-heading"><span>Spin power</span><strong id="powerNumber">0 <small>/ 50</small></strong></div>
+              <div class="power-track"><div class="power-fill" id="powerFill"></div></div>
+            </div>
+            <div id="hint" class="hint" role="status" aria-live="polite">Ready to start.</div>
+            <button type="button" class="spin-button" id="spinAction">Start</button>
+            <div class="stage-shortcut">Press Space or click the wheel to continue</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
   (function(){
@@ -139,6 +570,17 @@ Aarav, Diya, Kavya"></textarea>
     const wheelCtx = wheelCanvas.getContext('2d');
     const hintEl = $('#hint');
     const spinnerArea = $('#spinnerArea');
+    const backToSetup = $('#backToSetup');
+    const spinAction = $('#spinAction');
+    const powerPanel = $('#powerPanel');
+    const powerFill = $('#powerFill');
+    const powerNumber = $('#powerNumber');
+    const liveGiver = $('#liveGiver');
+    const liveVerb = $('#liveVerb');
+    const liveRecipient = $('#liveRecipient');
+    const assignmentList = $('#assignmentList');
+    const assignmentsCard = $('#assignmentsCard');
+    const toggleAssignmentList = $('#toggleAssignmentList');
 
     // Importers
     const avoidFile = $('#avoidFile');
@@ -192,10 +634,9 @@ Aarav, Diya, Kavya"></textarea>
     function normDeg(d){ d%=360; return d<0? d+360 : d; }
 
     const PALETTE = [
-      '#F94144','#F3722C','#F8961E','#F9C74F','#90BE6D','#43AA8B',
-      '#577590','#277DA1','#9B5DE5','#F15BB5','#00BBF9','#00F5D4',
-      '#FF7F50','#FFB703','#2A9D8F','#4D908E','#B5179E','#7209B7',
-      '#3A86FF','#8338EC'
+      '#ec7752','#efb951','#518cbf','#5bb59b',
+      '#ad71c9','#dd80a9','#de9c46','#628fc5',
+      '#96b768','#d87866','#877dc9','#e4a84f'
     ];
 
     // ---------- Stores ----------
@@ -417,6 +858,9 @@ Aarav, Diya, Kavya"></textarea>
     function powerFromPos(pos){ const c=pos-0.5, n=1-4*c*c; return Math.floor(POWER_MAX*Math.max(0,n)+1e-6); }
 
     let currentAngle=0, speed=0, receivers=[];
+    // The visible wedges can lag the upcoming pair list until Spin is pressed.
+    // This prevents a recipient-dependent wheel redraw during the power phase.
+    let displayedPairs=[];
     const wheelCanvasOff = document.createElement('canvas');
     const wheelCtxOff = wheelCanvasOff.getContext('2d');
 
@@ -471,160 +915,188 @@ Aarav, Diya, Kavya"></textarea>
     }
 
     function layoutWheel(assignmentsObj, width, height){
-      wheelCanvasOff.width = width; wheelCanvasOff.height = height;
-      const ctx = wheelCtxOff; ctx.clearRect(0,0,width,height);
-      const cx=width/2, cy=height/2;
-      receivers = Object.values(assignmentsObj||{}); const n=receivers.length; if(!n) return;
-      const wedge = TAU/n; const radius = Math.min(width,height)*0.42;
-      const useInitials = n>24;
-      const baseFont = Math.max(12, Math.floor(Math.min(width,height)*(useInitials?0.055:0.06)));
-      const labelRadius = radius*0.72;
+      wheelCanvasOff.width=width; wheelCanvasOff.height=height;
+      const ctx=wheelCtxOff;
+      ctx.clearRect(0,0,width,height);
+      receivers=Object.values(assignmentsObj||{});
+      const n=receivers.length;
+      const cx=width/2,cy=height/2,dim=Math.min(width,height);
+      const faceRadius=dim*.413;
+      const rimRadius=dim*.478;
+      const bulbRadius=dim*.455;
 
-      for (let i=0;i<n;i++){
-        const color = PALETTE[i%PALETTE.length];
-        const start=i*wedge, center=start+wedge/2;
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.45)';
+      ctx.shadowBlur=dim*.035;
+      ctx.shadowOffsetY=dim*.012;
+      ctx.beginPath();ctx.arc(cx,cy,rimRadius,0,TAU);
+      const rim=ctx.createRadialGradient(cx,cy,faceRadius, cx,cy,rimRadius);
+      rim.addColorStop(0,'#fff6db');
+      rim.addColorStop(.22,'#9a6423');
+      rim.addColorStop(.51,'#ecc46f');
+      rim.addColorStop(.74,'#915c21');
+      rim.addColorStop(1,'#eed599');
+      ctx.fillStyle=rim;ctx.fill();ctx.restore();
 
-        ctx.beginPath(); ctx.moveTo(cx,cy);
-        for (let s=0;s<=32;s++){ const ang=start+(s/32)*wedge; const [x,y]=pointOnCircle(cx,cy,radius,ang); ctx.lineTo(x,y); }
-        ctx.closePath();
-        ctx.fillStyle=color; ctx.shadowColor='rgba(0,0,0,.10)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+      ctx.beginPath();ctx.arc(cx,cy,faceRadius+dim*.013,0,TAU);
+      ctx.fillStyle='#f6e5b3';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,faceRadius,0,TAU);
+      ctx.fillStyle='#e3bc69';ctx.fill();
 
-        ctx.strokeStyle='rgba(0,0,0,.22)'; ctx.lineWidth=2;
-        const [lx,ly]=pointOnCircle(cx,cy,radius,start); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.stroke();
+      if(n){
+        const arc=TAU/n;
+        for(let i=0;i<n;i++){
+          const start=i*arc,mid=start+arc/2;
+          ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,faceRadius,start,start+arc);ctx.closePath();
+          ctx.fillStyle=PALETTE[i%PALETTE.length];ctx.fill();
+          ctx.strokeStyle='#fff3cf';ctx.lineWidth=Math.max(1.2,dim*.0028);ctx.stroke();
 
-        const label = useInitials? initialsOf(receivers[i]) : receivers[i];
-        const [tx,ty]=pointOnCircle(cx,cy,labelRadius,center);
-        const arcLen = radius*wedge*0.85; let fontPx=baseFont; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`;
-        while (ctx.measureText(label).width>arcLen && fontPx>10){ fontPx--; ctx.font=`700 ${fontPx}px 'Segoe UI', system-ui, sans-serif`; }
-
-        ctx.save(); ctx.translate(tx,ty); ctx.rotate(-center); ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.lineWidth=Math.max(2,Math.floor(fontPx/6)); ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(label,0,0);
-        ctx.fillStyle='#fff'; ctx.fillText(label,0,0); ctx.restore();
+          // Label orientation follows the radius, flipping on the left side.
+          const abbreviated=n>=19;
+          const display=abbreviated?initialsOf(receivers[i]):receivers[i];
+          const at=faceRadius*(n>=19?.73:.66);
+          const tx=cx+Math.cos(mid)*at,ty=cy+Math.sin(mid)*at;
+          const arcWidth=at*arc*.91;
+          const desiredFont=Math.min(23,Math.max(12,dim*.031));
+          const font=Math.max(10,Math.min(desiredFont,arcWidth*.9));
+          ctx.save();ctx.translate(tx,ty);
+          ctx.rotate(mid>Math.PI/2&&mid<Math.PI*1.5 ?mid+Math.PI:mid);
+          ctx.font='800 '+font+'px system-ui, sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.lineJoin='round';ctx.lineWidth=Math.max(2.5,font*.24);
+          ctx.strokeStyle='#ffffffbb';
+          ctx.fillStyle='#20334a';
+          const maxLength=Math.min(faceRadius*.65,Math.max(arcWidth,dim*.045));
+          ctx.strokeText(display,0,0,maxLength);
+          ctx.fillText(display,0,0,maxLength);
+          ctx.restore();
+        }
+      }else{
+        ctx.beginPath();ctx.arc(cx,cy,faceRadius,0,TAU);
+        ctx.fillStyle='#c9d5e2';ctx.fill();
       }
 
-      ctx.beginPath(); ctx.arc(cx,cy,radius*0.07,0,TAU); ctx.fillStyle='#222'; ctx.fill();
+      // A ring of evenly-spaced bulb heads reinforces the physical-wheel look.
+      const lights=Math.max(32,Math.min(76,Math.round(dim*.11)));
+      for(let i=0;i<lights;i++){
+        const angle=i*TAU/lights;
+        const x=cx+Math.cos(angle)*bulbRadius;
+        const y=cy+Math.sin(angle)*bulbRadius;
+        const r=Math.max(2.4,dim*.0044);
+        ctx.beginPath();ctx.arc(x,y,r*1.35,0,TAU);
+        ctx.fillStyle='#8c5c21';ctx.fill();
+        ctx.beginPath();ctx.arc(x-r*.18,y-r*.22,r,0,TAU);
+        ctx.fillStyle=i%2?'#ffe2a0':'#fff6dd';ctx.fill();
+      }
+
+      // Turned brass hub: layered concentric rings and a dark center pin.
+      const hub=dim*.054;
+      ctx.beginPath();ctx.arc(cx,cy,hub*1.65,0,TAU);
+      ctx.fillStyle='#7d4e23';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,hub*1.36,0,TAU);
+      const metal=ctx.createRadialGradient(cx-hub*.3,cy-hub*.35,2,cx,cy,hub*1.35);
+      metal.addColorStop(0,'#fff4ce');metal.addColorStop(.53,'#f0c16c');metal.addColorStop(1,'#87561d');
+      ctx.fillStyle=metal;ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,hub*.62,0,TAU);
+      ctx.fillStyle='#2b3745';ctx.fill();
     }
 
     let rafId=0, lastTime=0, stepAccum=0; const STEP=1/60;
-    function loop(ts){
-      rafId = requestAnimationFrame(loop);
-      if (!lastTime) lastTime=ts;
-      const dt = Math.min(0.25, (ts-lastTime)/1000); lastTime = ts; stepAccum += dt;
 
-      if (state===STATE_POWER){
-        p += dir * v * dt;
-        if (p >= 1) { p = 1; dir = -1; }
-        if (p <= 0) { p = 0; dir = +1; }
-        powerVal = powerFromPos(p);
+    function pointerIndex(){
+      if(!receivers.length) return -1;
+      const phase=normDeg(POINTER_DEG-currentAngle);
+      return Math.min(receivers.length-1,Math.floor(phase/(360/receivers.length)));
+    }
+
+    function advanceWheelStep(){
+      if(state!==STATE_SPIN)return;
+      currentAngle+=speed;
+      speed*=slowdownFactor;
+      const idx=pointerIndex();
+      if(prevTickIndex!==null&&idx!==prevTickIndex&&receivers.length){
+        // Correct travel direction: wheel moves clockwise, pointer visits descending indexes.
+        let crossed=prevTickIndex-idx;
+        if(crossed<0)crossed+=receivers.length;
+        for(let i=0;i<Math.min(crossed,4);i++)playTick();
       }
+      prevTickIndex=idx;
+      if(speed<.001){
+        state=STATE_RESULT;
+        pendingReset=true;
+        lastResultIndex=iPair;
+      }
+    }
 
-      while (stepAccum>=STEP){
-        stepAccum -= STEP;
-        if (state===STATE_SPIN){
-          currentAngle += speed;
-          speed *= slowdownFactor;
-
-          // Tick: detect slice under fixed pointer
-          const n = Math.max(1, receivers.length);
-          const wedgeDeg = 360 / n;
-          const phase = normDeg(POINTER_DEG - currentAngle);
-          const idxNow = Math.floor(phase / wedgeDeg);
-
-          if (prevTickIndex === null){
-            prevTickIndex = idxNow;
-          } else if (idxNow !== prevTickIndex){
-            let steps = idxNow - prevTickIndex;
-            if (steps < 0) steps += n;
-            for (let k=0;k<steps;k++) playTick();
-            prevTickIndex = idxNow;
-          }
-
-          if (speed < 0.001) {
-            state = STATE_RESULT;
-            pendingReset = true;
-            lastResultIndex = iPair;
-          }
-        }
+    function loop(ts){
+      rafId=requestAnimationFrame(loop);
+      if(!lastTime)lastTime=ts;
+      const dt=Math.min(.25,(ts-lastTime)/1000);
+      lastTime=ts;stepAccum+=dt;
+      if(state===STATE_POWER){
+        p+=dir*v*dt;
+        if(p>=1){p=1;dir=-1;}
+        if(p<=0){p=0;dir=1;}
+        powerVal=powerFromPos(p);
+      }
+      while(stepAccum>=STEP){
+        stepAccum-=STEP;
+        if(state===STATE_SPIN)advanceWheelStep();
       }
       render();
     }
 
     function render(){
-      if (resizeCanvasToDisplaySize(wheelCanvas)){
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+      if(resizeCanvasToDisplaySize(wheelCanvas)){
+        layoutWheel(Object.fromEntries(displayedPairs),wheelCanvas.width,wheelCanvas.height);
       }
-      const cx=wheelCanvas.width/2, cy=wheelCanvas.height/2;
+      const w=wheelCanvas.width,h=wheelCanvas.height;
+      wheelCtx.clearRect(0,0,w,h);
+      wheelCtx.save();
+      wheelCtx.translate(w/2,h/2);
+      wheelCtx.rotate(currentAngle*Math.PI/180);
+      wheelCtx.drawImage(wheelCanvasOff,-w/2,-h/2);
+      wheelCtx.restore();
 
-      const bg = wheelCtx.createRadialGradient(cx,cy,0,cx,cy,Math.max(cx,cy));
-      bg.addColorStop(0,'#fcfcfe'); bg.addColorStop(1,'#e8eef6');
-      wheelCtx.fillStyle = bg; wheelCtx.fillRect(0,0,wheelCanvas.width, wheelCanvas.height);
-
-      wheelCtx.save(); wheelCtx.translate(cx,cy); wheelCtx.rotate(currentAngle*Math.PI/180);
-      wheelCtx.drawImage(wheelCanvasOff,-cx,-cy); wheelCtx.restore();
-
-      const pointerTop = wheelCanvas.height*0.10, pointerBase = wheelCanvas.height*0.18;
-      wheelCtx.beginPath(); wheelCtx.moveTo(cx,pointerBase); wheelCtx.lineTo(cx-26,pointerTop); wheelCtx.lineTo(cx+26,pointerTop);
-      wheelCtx.closePath(); wheelCtx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--pointer')||'#ff6b6b';
-      wheelCtx.shadowColor='rgba(0,0,0,.22)'; wheelCtx.shadowBlur=8; wheelCtx.fill(); wheelCtx.shadowBlur=0;
-
-      const hudFont = Math.max(14, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.05));
-      drawTextWithBox(wheelCtx, `Giver: ${giver || ''}`, cx, wheelCanvas.height * 0.07, hudFont);
-
-      if (state===STATE_POWER) drawPowerBar(cx, Math.floor(wheelCanvas.height*0.22));
-
-      if (state===STATE_WAIT){
-        hintEl.textContent = 'Ready. Tap / Click / Space to pick & open the power bar.';
-      } else if (state===STATE_POWER){
-        hintEl.textContent = `Set power: +${powerVal}. Tap / Click / Space to lock & spin.`;
-      } else if (state===STATE_SPIN){
-        hintEl.textContent = 'Spinning… Tap / Click / Space to force-stop.';
-      } else if (state===STATE_RESULT){
-        hintEl.textContent = 'Result shown. Tap / Click / Space for the next pair.';
-        if (giver && chosenReceiver){
-          const note = `${giver} \u2192 ${chosenReceiver}`;
-          const noteFont = Math.max(16, Math.floor(Math.min(wheelCanvas.width, wheelCanvas.height) * 0.06));
-          drawTextWithBox(wheelCtx, note, cx, wheelCanvas.height * 0.90, noteFont);
-        }
+      const total=assignments?Object.keys(assignments).length:0;
+      const completed=total-pairs.length;
+      $('#stageProgress').textContent=total?
+        'MATCH '+String(Math.min(total,completed+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0'):'READY';
+      powerPanel.classList.toggle('hidden',state!==STATE_POWER);
+      const spinning=state===STATE_SPIN;
+      liveRecipient.classList.toggle('is-rolling',spinning);
+      if(!giver){
+        liveGiver.textContent=total&&!pairs.length?'All matches revealed':'Ready to spin';
+        liveVerb.textContent='';
+        liveRecipient.textContent='';
+        $('#stageLabel').textContent=total&&!pairs.length?'COMPLETE':'GIFT EXCHANGE';
+      }else{
+        $('#stageLabel').textContent='CURRENT GIVER';
+        liveGiver.textContent=giver;
+        liveVerb.textContent='is giving to';
+        if(state===STATE_RESULT)liveRecipient.textContent=chosenReceiver;
+        else if(spinning){
+          const idx=pointerIndex();
+          const passing=idx<0?'—':receivers[idx];
+          if(liveRecipient.textContent!==passing)liveRecipient.textContent=passing;
+        }else liveRecipient.textContent='…';
       }
-    }
-
-    function drawPowerBar(cx, y){
-      const ctx = wheelCtx;
-      const W = Math.min(wheelCanvas.width*0.8, 700);
-      const H = 22; const r = H/2; const x = cx - W/2;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(x+r, y); ctx.lineTo(x+W-r, y);
-      ctx.arc(x+W-r, y+r, r, -Math.PI/2, Math.PI/2);
-      ctx.lineTo(x+r, y+H);
-      ctx.arc(x+r, y+r, r, Math.PI/2, -Math.PI/2);
-      ctx.closePath(); ctx.fillStyle = 'white';
-      ctx.shadowColor='rgba(0,0,0,.08)'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
-      ctx.strokeStyle = '#d6dce7'; ctx.stroke();
-
-      const grad = ctx.createLinearGradient(x, y, x+W, y);
-      grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
-      grad.addColorStop(0.5, getComputedStyle(document.documentElement).getPropertyValue('--barMid') || '#ff4d4d');
-      grad.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--barEdge') || '#3cc96b');
-
-      ctx.beginPath(); ctx.rect(x+2, y+2, (W-4)*p, H-4); ctx.fillStyle = grad; ctx.fill();
-
-      ctx.globalAlpha=.45; ctx.strokeStyle='#9fb0cf';
-      for (let k=0;k<=30;k++){
-        const tx = x + (W) * (k/30);
-        const len = (k%5===0)? 10 : 6;
-        ctx.beginPath(); ctx.moveTo(tx, y - len/2); ctx.lineTo(tx, y + H + len/2); ctx.stroke();
+      if(state===STATE_POWER){
+        powerFill.style.width=(powerVal/POWER_MAX*100)+'%';
+        powerNumber.innerHTML=powerVal+' <small>/ '+POWER_MAX+'</small>';
+        hintEl.textContent='Choose the power, then spin.';
+        spinAction.textContent='SPIN THE WHEEL';
+      }else if(spinning){
+        hintEl.textContent='Watch the names as the wheel slows.';
+        spinAction.textContent='SPINNING…';
+      }else if(state===STATE_RESULT){
+        hintEl.textContent='Match revealed.';
+        spinAction.textContent=pairs.length===1?'FINISH':'NEXT PERSON';
+      }else{
+        hintEl.textContent=total&&!pairs.length?'Exchange complete.':'Start to select the first giver.';
+        spinAction.textContent=total&&!pairs.length?'COMPLETE':'START';
       }
-      ctx.globalAlpha=1;
-
-      const livePower = powerFromPos(p);
-      const m = livePower / 30;
-      ctx.beginPath(); ctx.arc(x + W*p, y + H/2, H*0.55, 0, Math.PI*2);
-      ctx.fillStyle = `hsl(${120*(1-m)}, 85%, 50%)`;
-      ctx.shadowColor = 'var(--barDotShadow)'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-
-      ctx.restore();
+      spinAction.disabled=(spinning||(!pairs.length&&state===STATE_WAIT));
     }
 
     function resetSpinner(assignmentsObj){
@@ -632,7 +1104,8 @@ Aarav, Diya, Kavya"></textarea>
       state = STATE_WAIT; giver=''; chosenReceiver=''; currentAngle=0; speed=0;
       p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
       prevTickIndex = null;       // reset tick index
-      layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height); render();
+      displayedPairs=pairs.slice();
+      layoutWheel(Object.fromEntries(displayedPairs), wheelCanvas.width, wheelCanvas.height); render();
     }
 
     // ---------- Advance flow (Space / Click / Tap) ----------
@@ -666,8 +1139,9 @@ Aarav, Diya, Kavya"></textarea>
           const j = Math.floor(Math.random() * (i + 1));
           [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
         }
-        // 3) rebuild wheel
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+        // Prepare the next list, but keep the previous wheel on screen while
+        // the power meter runs. The actual replacement happens on Spin.
+        // No pre-spin wheel redraw or starting-angle change is painted here.
         // 4) pick next pair
         iPair = 0;
         [giver, chosenReceiver] = pairs[iPair];
@@ -679,9 +1153,8 @@ Aarav, Diya, Kavya"></textarea>
         spinWithPower(bonus);
 
       } else if (state===STATE_SPIN){
-        state = STATE_RESULT;
-        pendingReset = true;
-        lastResultIndex = iPair;
+        // Continue the natural slowdown; stopping mid-wedge could reveal a different name.
+        return;
       }
     }
 
@@ -696,38 +1169,67 @@ Aarav, Diya, Kavya"></textarea>
     // Click / Tap inside the spinner area
     function handlePointerAdvance(e){
       if (spinnerArea.classList.contains('hidden')) return;
+      if (e.target.closest('button, a, input')) return;
       e.preventDefault();
       e.stopPropagation();
       advanceSpinFlow();
     }
+    spinAction.addEventListener('click', e=>{
+      e.stopPropagation();
+      advanceSpinFlow();
+    });
+    backToSetup.addEventListener('click', e=>{
+      e.stopPropagation();
+      if (document.fullscreenElement===spinnerArea) document.exitFullscreen?.();
+      spinnerArea.classList.add('hidden');
+      document.body.classList.remove('stage-active');
+      cancelAnimationFrame(rafId);
+      rafId=0; lastTime=0; stepAccum=0;
+      showSpinnerBtn.focus();
+    });
+    toggleAssignmentList.addEventListener('click', ()=>{
+      const hidden=assignmentList.classList.toggle('hidden');
+      toggleAssignmentList.textContent=hidden?'Show matches':'Hide matches';
+      toggleAssignmentList.setAttribute('aria-expanded',String(!hidden));
+    });
+    // A touch already produces a click. Listening for both would skip a state
+    // and make one tap appear to start a spin prematurely.
     spinnerArea.addEventListener('click', handlePointerAdvance);
-    spinnerArea.addEventListener('touchstart', handlePointerAdvance, {passive:false});
 
     function spinWithPower(bonus){
-      const n = Math.max(1, receivers.length);
+      // All of this runs synchronously in the Spin click event.
+      // Updating wedges, repositioning, and taking the first movement step
+      // happen before ONE canvas draw, so the pre-position is never shown.
+      displayedPairs=pairs.slice();
+      layoutWheel(Object.fromEntries(displayedPairs),wheelCanvas.width,wheelCanvas.height);
 
-      const sign = (Math.random() < 0.5 ? -1 : 1);
-      const randInt = Math.random();
-      const jitter = sign * ((.5 - randInt) / (2 * n));
-      const jitterDeg = jitter * 360;
+      const n=Math.max(1,receivers.length);
+      const sign=Math.random()<.5?-1:1;
+      const randInt=Math.random();
+      const jitter=sign*((.5-randInt)/(2*n));
+      const jitterDeg=jitter*360;
 
-      const totalN = 3.25 + bonus;
-      const totalAngle = totalN * 360;
-      const speed0 = totalAngle * (1 - 0.98);
-
-      const wedgeDeg = 360 / n;
-      const idx = receivers.indexOf(chosenReceiver);
-      if (idx < 0) {
-        currentAngle = 0;
-      } else {
-        const centerDeg = (idx + 0.5) * wedgeDeg;
-        const targetFinal = normDeg(POINTER_DEG - centerDeg);
-        currentAngle = normDeg(targetFinal - totalAngle) + jitterDeg;
+      // Original wheel's starting angle, power and exponential slowdown.
+      const totalN=3.25+bonus;
+      const totalAngle=totalN*360;
+      const speed0=totalAngle*(1-slowdownFactor);
+      const wedgeDeg=360/n;
+      const idx=receivers.indexOf(chosenReceiver);
+      if(idx<0)currentAngle=0;
+      else{
+        const centerDeg=(idx+.5)*wedgeDeg;
+        const targetFinal=normDeg(POINTER_DEG-centerDeg);
+        currentAngle=normDeg(targetFinal-totalAngle)+jitterDeg;
       }
-      prevTickIndex = null; // reset tick index at spin start
-      speed = speed0;
-      state = STATE_SPIN;
-      if (!rafId){ lastTime=0; stepAccum=0; rafId=requestAnimationFrame(loop); }
+      prevTickIndex=pointerIndex();
+      speed=speed0;
+      state=STATE_SPIN;
+
+      // Do not paint a repositioned but stationary wheel. Integrate the
+      // first real physics step now, then paint only the moving state.
+      advanceWheelStep();
+      render();
+      if(!rafId){lastTime=0;stepAccum=0;rafId=requestAnimationFrame(loop);}
     }
 
     // Buttons
@@ -758,6 +1260,17 @@ Aarav, Diya, Kavya"></textarea>
       if (!assn) return;
 
       resetSpinner(assn);
+      assignmentList.replaceChildren();
+      for(const [from,to] of Object.entries(assn)){
+        const li=document.createElement('li');
+        li.textContent=from+' → '+to;
+        assignmentList.append(li);
+      }
+      $('#assignmentsCount').textContent=Object.keys(assn).length+' matches generated';
+      assignmentList.classList.add('hidden');
+      toggleAssignmentList.textContent='Show matches';
+      toggleAssignmentList.setAttribute('aria-expanded','false');
+      assignmentsCard.classList.remove('hidden');
       showSpinnerBtn.classList.remove('hidden');
       showSpinnerBtn.click();
     });
@@ -765,9 +1278,12 @@ Aarav, Diya, Kavya"></textarea>
     // Show spinner + FS button
     const fsToggleBtn = $('#fsToggle');
     showSpinnerBtn.addEventListener('click', ()=>{
+      $('#stageOccasion').textContent=occasionInput.value.trim() || 'Gift exchange';
+      document.body.classList.add('stage-active');
       spinnerArea.classList.remove('hidden');
       if (!rafId){ lastTime=0; stepAccum=0; rafId=requestAnimationFrame(loop); }
-      fsToggleBtn.classList.remove('hidden');
+      render();
+      spinAction.focus({preventScroll:true});
     });
 
     // Fullscreen
@@ -799,6 +1315,11 @@ Aarav, Diya, Kavya"></textarea>
       intraInput.checked=false; recipInput.checked=false;
       downloadLink.classList.add('hidden'); downloadLink.removeAttribute('href');
       spinnerArea.classList.add('hidden');
+      document.body.classList.remove('stage-active');
+      assignmentsCard.classList.add('hidden');
+      assignmentList.replaceChildren();
+      showSpinnerBtn.classList.add('hidden');
+      if(document.fullscreenElement===spinnerArea) document.exitFullscreen?.();
       cancelAnimationFrame(rafId); rafId=0; lastTime=0; stepAccum=0;
       receivers=[]; state=STATE_WAIT; p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
       prevTickIndex = null;
@@ -810,7 +1331,7 @@ Aarav, Diya, Kavya"></textarea>
     // Keep crisp on resize
     new ResizeObserver(()=>{
       if (!spinnerArea.classList.contains('hidden')){
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+        layoutWheel(Object.fromEntries(displayedPairs), wheelCanvas.width, wheelCanvas.height);
         render();
       }
     }).observe(wheelCanvas);
