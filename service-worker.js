@@ -1,4 +1,4 @@
-const CACHE = 'gather-give-v2';
+const CACHE = 'gift-exchange-v3';
 const ASSETS = ['./', './index.html', './styles.css', './src/app.js', './src/engine.js', './favicon.svg', './manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
