@@ -400,7 +400,7 @@
     .wheel-pointer {
       pointer-events:none;
       position:absolute; z-index:5;
-      left:50%; top:0; transform:translate(-50%,-16%);
+      left:50%; top:8%; transform:translate(-50%,-80%);
       width:0; height:0;
       border-left:clamp(11px,1.3vw,16px) solid transparent;
       border-right:clamp(11px,1.3vw,16px) solid transparent;
@@ -1067,7 +1067,7 @@
         ? (pairs.length ? 'REVEAL '+String(Math.min(total,finished+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0') : 'EXCHANGE COMPLETE')
         : 'READY TO START';
       $('#stageGiver').textContent=giver || (total && !pairs.length ? 'All matches revealed' : 'Ready to spin');
-      $('#stageLabel').textContent=total && !pairs.length ? '' : giver ? 'Giving a gift' : 'Next up';
+      $('#stageLabel').textContent=total && !pairs.length ? '' : giver ? 'Current giver' : 'Next up';
       powerPanel.classList.toggle('hidden',state!==STATE_POWER);
       resultPanel.classList.toggle('hidden',state!==STATE_RESULT);
       if(state===STATE_POWER){
