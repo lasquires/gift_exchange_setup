@@ -1,62 +1,38 @@
-# 🎁 Gift Exchange Spinner
+# Gift Exchange
 
-**[Try it live →](https://lasquires.github.io/gift_exchange_setup/)**
+A browser-based gift exchange assignment tool and spinning reveal. Based on the original [Gift Exchange Spinner](https://github.com/lasquires/gift_exchange_setup).
 
-An interactive, browser-based tool to **randomly assign gift exchange pairs** between people — complete with a **colorful spinning wheel**, **fun power bar**, and **fair pairing logic**.
+## Features
 
----
+- Each person gives and receives exactly one gift.
+- By default, no self-pairing, same-group pairing, or reciprocal pairing.
+- Optional exclusions and fixed assignments; import from TXT or CSV.
+- Matching engine detects impossible constraints.
+- Spinner reveals precomputed valid assignments, with sound and fullscreen controls.
+- TXT and JSON exports.
+- Setup stays in your browser; no server or account. Works offline after first successful load.
 
-## ✨ Features
+## Usage
 
-* 📝 **Easy Setup**
+Enter groups, one per line:
 
-  * Type in families and their members (or just individual names)
-  * Optional “avoid pairs” and “forced pairs” import (TXT or CSV)
-* 🚫 **Smart Rules**
+```text
+Smith: Alice, Bob, Carol
+Jones: David, Erin, Finn
+```
 
-  * Prevents self-pairs, intra-family pairs, reciprocal pairs, and repeats from past years
-* 🎡 **Fun Spinner UI**
+Optionally change the rules or expand **Exclusions and fixed assignments**. Click **Generate assignments**, then **Open spinner**.
 
-  * Players hit space to charge up a power bar and spin the wheel
-  * Tick sounds, randomized spin speed, and smooth animations
-* 💾 **Offline Friendly**
+Pair imports use `Alice -> David`, `Alice,David`, or `Alice → David` on each line. Previous TXT exports can be imported as next year's exclusions.
 
-  * No accounts or servers
-  * Everything runs in the browser — your data stays local
-* 📥 **Export Results**
+The power meter controls the spin animation, not the assigned recipient. Matches are randomized but not guaranteed to be sampled uniformly from all valid assignments.
 
-  * Download the final assignments as a `.txt` file
+## Local development
 
----
+```bash
+npm run start
+# http://localhost:8080
+npm test
+```
 
-## 💡 How to Use
-
-1. Go to **[lasquires.github.io/gift\_exchange\_setup](https://lasquires.github.io/gift_exchange_setup/)**
-2. Enter each family on a new line, like:
-
-   ```
-   Smith: Alice, Bob, Carol
-   Johnson: Dave, Erin
-   ```
-3. (Optional) Import **avoid pairs** or **forced pairs** as `.txt` or `.csv`
-4. Click **Generate Assignments**
-5. Click **Show Spinner**
-6. Press **Space** to spin the wheel for each giver → receiver pairing!
-
----
-
-## ⚡ Tips
-
-* Use **fullscreen (F)** for the most fun spinning experience.
-* Avoid pairs will automatically enable "no repeats" mode.
-* Press **Reset** anytime to start over.
-
----
-
-## 📦 Tech
-
-* Pure HTML, CSS, and JavaScript
-* No libraries or frameworks
-* Fully static site, hosted with **GitHub Pages**
-
-
+Plain HTML/CSS/JavaScript; no installation required for the app. Deploy as static files to GitHub Pages or Vercel.
