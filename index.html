@@ -572,7 +572,9 @@
     const powerPanel = $('#powerPanel');
     const powerFill = $('#powerFill');
     const powerNumber = $('#powerNumber');
-    const resultPanel = $('#resultPanel');
+    const liveGiver = $('#liveGiver');
+    const liveVerb = $('#liveVerb');
+    const liveRecipient = $('#liveRecipient');
     const assignmentList = $('#assignmentList');
     const assignmentsCard = $('#assignmentsCard');
     const toggleAssignmentList = $('#toggleAssignmentList');
@@ -629,9 +631,9 @@
     function normDeg(d){ d%=360; return d<0? d+360 : d; }
 
     const PALETTE = [
-      '#b7d2e3','#dbe5ec','#a8c8d8','#d3e4e0',
-      '#c1cee4','#dfdce9','#accdd0','#d5e0ec',
-      '#abc2dc','#d4e5e1','#bfd9e9','#d7ddec'
+      '#ec7752','#efb951','#518cbf','#5bb59b',
+      '#ad71c9','#dd80a9','#de9c46','#628fc5',
+      '#96b768','#d87866','#877dc9','#e4a84f'
     ];
 
     // ---------- Stores ----------
@@ -907,146 +909,188 @@
     }
 
     function layoutWheel(assignmentsObj, width, height){
-      wheelCanvasOff.width = width;
-      wheelCanvasOff.height = height;
-      const ctx = wheelCtxOff;
+      wheelCanvasOff.width=width; wheelCanvasOff.height=height;
+      const ctx=wheelCtxOff;
       ctx.clearRect(0,0,width,height);
-      receivers = Object.values(assignmentsObj || {});
-      const n = receivers.length;
-      const cx=width/2, cy=height/2;
-      const radius=Math.min(width,height)*0.42;
-      if (!n){
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx,cy,radius,0,TAU);
-        ctx.fillStyle='#dce4ee'; ctx.fill();
-        ctx.strokeStyle='#cad5e2'; ctx.lineWidth=4; ctx.stroke();
-        ctx.restore();
-        return;
-      }
-      const slice = TAU/n;
+      receivers=Object.values(assignmentsObj||{});
+      const n=receivers.length;
+      const cx=width/2,cy=height/2,dim=Math.min(width,height);
+      const faceRadius=dim*.413;
+      const rimRadius=dim*.478;
+      const bulbRadius=dim*.455;
+
       ctx.save();
-      ctx.beginPath();ctx.arc(cx,cy,radius+4,0,TAU);
-      ctx.fillStyle='#eaf0f5';ctx.fill();
-      ctx.strokeStyle='#ffffff';ctx.lineWidth=Math.max(3,width*.009);ctx.stroke();
+      ctx.shadowColor='rgba(0,0,0,.45)';
+      ctx.shadowBlur=dim*.035;
+      ctx.shadowOffsetY=dim*.012;
+      ctx.beginPath();ctx.arc(cx,cy,rimRadius,0,TAU);
+      const rim=ctx.createRadialGradient(cx,cy,faceRadius, cx,cy,rimRadius);
+      rim.addColorStop(0,'#fff6db');
+      rim.addColorStop(.22,'#9a6423');
+      rim.addColorStop(.51,'#ecc46f');
+      rim.addColorStop(.74,'#915c21');
+      rim.addColorStop(1,'#eed599');
+      ctx.fillStyle=rim;ctx.fill();ctx.restore();
 
-      for(let i=0;i<n;i++){
-        const start=i*slice, mid=start+slice/2;
-        ctx.beginPath();
-        ctx.moveTo(cx,cy);
-        ctx.arc(cx,cy,radius,start,start+slice);
-        ctx.closePath();
-        ctx.fillStyle=PALETTE[i%PALETTE.length]; ctx.fill();
-        ctx.strokeStyle='rgba(255,255,255,.78)';
-        ctx.lineWidth=Math.max(1.2,width*.002);ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,faceRadius+dim*.013,0,TAU);
+      ctx.fillStyle='#f6e5b3';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,faceRadius,0,TAU);
+      ctx.fillStyle='#e3bc69';ctx.fill();
 
-        const display=n>22?initialsOf(receivers[i]):receivers[i];
-        const distance=radius*(n>18?.67:.65);
-        const tx=cx+Math.cos(mid)*distance;
-        const ty=cy+Math.sin(mid)*distance;
-        let font=Math.min(21,Math.max(11,radius*.075));
-        const textArc=distance*slice*.83;
-        font=Math.max(10,Math.min(font,textArc*.88));
-        ctx.save();
-        ctx.translate(tx,ty);
-        ctx.rotate(mid>Math.PI/2&&mid<Math.PI*1.5?mid+Math.PI:mid);
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.font='650 '+font+'px system-ui, sans-serif';
-        ctx.fillStyle='#1d3650';
-        ctx.fillText(display,0,0,radius*.54);
-        ctx.restore();
+      if(n){
+        const arc=TAU/n;
+        for(let i=0;i<n;i++){
+          const start=i*arc,mid=start+arc/2;
+          ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,faceRadius,start,start+arc);ctx.closePath();
+          ctx.fillStyle=PALETTE[i%PALETTE.length];ctx.fill();
+          ctx.strokeStyle='#fff3cf';ctx.lineWidth=Math.max(1.2,dim*.0028);ctx.stroke();
+
+          // Label orientation follows the radius, flipping on the left side.
+          const abbreviated=n>=19;
+          const display=abbreviated?initialsOf(receivers[i]):receivers[i];
+          const at=faceRadius*(n>=19?.73:.66);
+          const tx=cx+Math.cos(mid)*at,ty=cy+Math.sin(mid)*at;
+          const arcWidth=at*arc*.91;
+          const desiredFont=Math.min(23,Math.max(12,dim*.031));
+          const font=Math.max(10,Math.min(desiredFont,arcWidth*.9));
+          ctx.save();ctx.translate(tx,ty);
+          ctx.rotate(mid>Math.PI/2&&mid<Math.PI*1.5 ?mid+Math.PI:mid);
+          ctx.font='800 '+font+'px system-ui, sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.lineJoin='round';ctx.lineWidth=Math.max(2.5,font*.24);
+          ctx.strokeStyle='#ffffffbb';
+          ctx.fillStyle='#20334a';
+          const maxLength=Math.min(faceRadius*.65,Math.max(arcWidth,dim*.045));
+          ctx.strokeText(display,0,0,maxLength);
+          ctx.fillText(display,0,0,maxLength);
+          ctx.restore();
+        }
+      }else{
+        ctx.beginPath();ctx.arc(cx,cy,faceRadius,0,TAU);
+        ctx.fillStyle='#c9d5e2';ctx.fill();
       }
-      ctx.beginPath();ctx.arc(cx,cy,radius*.112,0,TAU);
-      ctx.fillStyle='#f8fafc';ctx.fill();
-      ctx.strokeStyle='#ffffff';ctx.lineWidth=Math.max(3,radius*.022);ctx.stroke();
-      ctx.beginPath();ctx.arc(cx,cy,radius*.048,0,TAU);
-      ctx.fillStyle='#567ba2';ctx.fill();
-      ctx.restore();
+
+      // A ring of evenly-spaced bulb heads reinforces the physical-wheel look.
+      const lights=Math.max(32,Math.min(76,Math.round(dim*.11)));
+      for(let i=0;i<lights;i++){
+        const angle=i*TAU/lights;
+        const x=cx+Math.cos(angle)*bulbRadius;
+        const y=cy+Math.sin(angle)*bulbRadius;
+        const r=Math.max(2.4,dim*.0044);
+        ctx.beginPath();ctx.arc(x,y,r*1.35,0,TAU);
+        ctx.fillStyle='#8c5c21';ctx.fill();
+        ctx.beginPath();ctx.arc(x-r*.18,y-r*.22,r,0,TAU);
+        ctx.fillStyle=i%2?'#ffe2a0':'#fff6dd';ctx.fill();
+      }
+
+      // Turned brass hub: layered concentric rings and a dark center pin.
+      const hub=dim*.054;
+      ctx.beginPath();ctx.arc(cx,cy,hub*1.65,0,TAU);
+      ctx.fillStyle='#7d4e23';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,hub*1.36,0,TAU);
+      const metal=ctx.createRadialGradient(cx-hub*.3,cy-hub*.35,2,cx,cy,hub*1.35);
+      metal.addColorStop(0,'#fff4ce');metal.addColorStop(.53,'#f0c16c');metal.addColorStop(1,'#87561d');
+      ctx.fillStyle=metal;ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,hub*.62,0,TAU);
+      ctx.fillStyle='#2b3745';ctx.fill();
     }
 
     let rafId=0, lastTime=0, stepAccum=0; const STEP=1/60;
-    function loop(ts){
-      rafId = requestAnimationFrame(loop);
-      if (!lastTime) lastTime=ts;
-      const dt = Math.min(0.25, (ts-lastTime)/1000); lastTime = ts; stepAccum += dt;
 
-      if (state===STATE_POWER){
-        p += dir * v * dt;
-        if (p >= 1) { p = 1; dir = -1; }
-        if (p <= 0) { p = 0; dir = +1; }
-        powerVal = powerFromPos(p);
+    function pointerIndex(){
+      if(!receivers.length) return -1;
+      const phase=normDeg(POINTER_DEG-currentAngle);
+      return Math.min(receivers.length-1,Math.floor(phase/(360/receivers.length)));
+    }
+
+    function advanceWheelStep(){
+      if(state!==STATE_SPIN)return;
+      currentAngle+=speed;
+      speed*=slowdownFactor;
+      const idx=pointerIndex();
+      if(prevTickIndex!==null&&idx!==prevTickIndex&&receivers.length){
+        // Correct travel direction: wheel moves clockwise, pointer visits descending indexes.
+        let crossed=prevTickIndex-idx;
+        if(crossed<0)crossed+=receivers.length;
+        for(let i=0;i<Math.min(crossed,4);i++)playTick();
       }
+      prevTickIndex=idx;
+      if(speed<.001){
+        state=STATE_RESULT;
+        pendingReset=true;
+        lastResultIndex=iPair;
+      }
+    }
 
-      while (stepAccum>=STEP){
-        stepAccum -= STEP;
-        if (state===STATE_SPIN){
-          currentAngle += speed;
-          speed *= slowdownFactor;
-
-          // Tick: detect slice under fixed pointer
-          const n = Math.max(1, receivers.length);
-          const wedgeDeg = 360 / n;
-          const phase = normDeg(POINTER_DEG - currentAngle);
-          const idxNow = Math.floor(phase / wedgeDeg);
-
-          if (prevTickIndex === null){
-            prevTickIndex = idxNow;
-          } else if (idxNow !== prevTickIndex){
-            let steps = idxNow - prevTickIndex;
-            if (steps < 0) steps += n;
-            for (let k=0;k<steps;k++) playTick();
-            prevTickIndex = idxNow;
-          }
-
-          if (speed < 0.001) {
-            state = STATE_RESULT;
-            pendingReset = true;
-            lastResultIndex = iPair;
-          }
-        }
+    function loop(ts){
+      rafId=requestAnimationFrame(loop);
+      if(!lastTime)lastTime=ts;
+      const dt=Math.min(.25,(ts-lastTime)/1000);
+      lastTime=ts;stepAccum+=dt;
+      if(state===STATE_POWER){
+        p+=dir*v*dt;
+        if(p>=1){p=1;dir=-1;}
+        if(p<=0){p=0;dir=1;}
+        powerVal=powerFromPos(p);
+      }
+      while(stepAccum>=STEP){
+        stepAccum-=STEP;
+        if(state===STATE_SPIN)advanceWheelStep();
       }
       render();
     }
 
     function render(){
-      if (resizeCanvasToDisplaySize(wheelCanvas)){
-        layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
+      if(resizeCanvasToDisplaySize(wheelCanvas)){
+        layoutWheel(Object.fromEntries(pairs),wheelCanvas.width,wheelCanvas.height);
       }
       const w=wheelCanvas.width,h=wheelCanvas.height;
       wheelCtx.clearRect(0,0,w,h);
-      const cx=w/2,cy=h/2;
       wheelCtx.save();
-      wheelCtx.translate(cx,cy);
+      wheelCtx.translate(w/2,h/2);
       wheelCtx.rotate(currentAngle*Math.PI/180);
-      wheelCtx.drawImage(wheelCanvasOff,-cx,-cy);
+      wheelCtx.drawImage(wheelCanvasOff,-w/2,-h/2);
       wheelCtx.restore();
 
-      const total=assignments ? Object.keys(assignments).length : 0;
-      const finished=total-pairs.length+(state===STATE_RESULT?1:0);
-      $('#stageProgress').textContent=total
-        ? (pairs.length ? 'REVEAL '+String(Math.min(total,finished+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0') : 'EXCHANGE COMPLETE')
-        : 'READY TO START';
-      $('#stageGiver').textContent=giver || (total && !pairs.length ? 'All matches revealed' : 'Ready to spin');
-      $('#stageLabel').textContent=total && !pairs.length ? '' : giver ? 'Current giver' : 'Next up';
+      const total=assignments?Object.keys(assignments).length:0;
+      const done=total-pairs.length+(state===STATE_RESULT?1:0);
+      $('#stageProgress').textContent=total?
+        'MATCH '+String(Math.min(total,done+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0'):'READY';
       powerPanel.classList.toggle('hidden',state!==STATE_POWER);
-      resultPanel.classList.toggle('hidden',state!==STATE_RESULT);
+      const spinning=state===STATE_SPIN;
+      liveRecipient.classList.toggle('is-rolling',spinning);
+      if(!giver){
+        liveGiver.textContent=total&&!pairs.length?'All matches revealed':'Ready to spin';
+        liveVerb.textContent='';
+        liveRecipient.textContent='';
+        $('#stageLabel').textContent=total&&!pairs.length?'COMPLETE':'GIFT EXCHANGE';
+      }else{
+        $('#stageLabel').textContent='CURRENT GIVER';
+        liveGiver.textContent=giver;
+        liveVerb.textContent='is giving to';
+        if(state===STATE_RESULT)liveRecipient.textContent=chosenReceiver;
+        else if(spinning){
+          const idx=pointerIndex();
+          const passing=idx<0?'—':receivers[idx];
+          if(liveRecipient.textContent!==passing)liveRecipient.textContent=passing;
+        }else liveRecipient.textContent='…';
+      }
       if(state===STATE_POWER){
         powerFill.style.width=(powerVal/POWER_MAX*100)+'%';
         powerNumber.innerHTML=powerVal+' <small>/ '+POWER_MAX+'</small>';
-        hintEl.textContent='Power rises and falls. Stop it when you like.';
-        spinAction.textContent='Spin';
-      }else if(state===STATE_SPIN){
-        hintEl.textContent='Spinning…';
-        spinAction.textContent='Stop spin';
+        hintEl.textContent='Choose the power, then spin.';
+        spinAction.textContent='SPIN THE WHEEL';
+      }else if(spinning){
+        hintEl.textContent='Watch the names as the wheel slows.';
+        spinAction.textContent='SPINNING…';
       }else if(state===STATE_RESULT){
-        $('#resultGiver').textContent=giver;
-        $('#resultRecipient').textContent=chosenReceiver;
         hintEl.textContent='Match revealed.';
-        spinAction.textContent=pairs.length===1?'Finish':'Next person';
+        spinAction.textContent=pairs.length===1?'FINISH':'NEXT PERSON';
       }else{
-        hintEl.textContent=total && !pairs.length ? 'All assignments revealed.' : 'Press Start to select the first giver.';
-        spinAction.textContent=total && !pairs.length ? 'Completed' : 'Start';
+        hintEl.textContent=total&&!pairs.length?'Exchange complete.':'Start to select the first giver.';
+        spinAction.textContent=total&&!pairs.length?'COMPLETE':'START';
       }
-      spinAction.disabled=!pairs.length&&state===STATE_WAIT;
+      spinAction.disabled=(spinning||(!pairs.length&&state===STATE_WAIT));
     }
 
     function resetSpinner(assignmentsObj){
