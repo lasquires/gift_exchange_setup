@@ -53,11 +53,9 @@ function parseSetup() {
 function refreshStats() {
   try {
     const data = parseSetup();
-    $('groupStat').textContent = data.families.length;
-    $('participantStat').textContent = data.people.length;
     $('peopleCount').textContent = `${data.people.length} ${data.people.length === 1 ? 'person' : 'people'}`;
     $('avoidCount').textContent = `${data.avoidPairs.length} excluded ${data.avoidPairs.length === 1 ? 'pair' : 'pairs'}`;
-    $('fixedCount').textContent = `${data.fixedPairs.length} planned ${data.fixedPairs.length === 1 ? 'pair' : 'pairs'}`;
+    $('fixedCount').textContent = `${data.fixedPairs.length} fixed ${data.fixedPairs.length === 1 ? 'pair' : 'pairs'}`;
   } catch {
     // Invalid typing is explained on Generate; don't interrupt editing.
     $('peopleCount').textContent = 'Review entries';
@@ -68,13 +66,11 @@ function invalidateResults() {
   pairs = null;
   people = [];
   groups = [];
-  $('matchedStat').textContent = '—';
   $('openStageBtn').disabled = true;
   $('organizerCard').hidden = true;
   $('assignmentsPanel').hidden = true;
   $('toggleAssignments').setAttribute('aria-expanded', 'false');
-  $('toggleAssignments').innerHTML = 'Show private assignments <span>⌄</span>';
-  $('previewDescription').textContent = 'Your setup changed. Make the matches again to reveal the new exchange.';
+  $('toggleAssignments').textContent = 'Show assignments';
   message('The setup changed. Generate fresh assignments to use the updated rules.', true);
 }
 
@@ -102,9 +98,8 @@ function exportPairs(format) {
 }
 function showMatches() {
   $('organizerCard').hidden = false;
-  $('matchedStat').textContent = pairs.length;
   $('openStageBtn').disabled = false;
-  $('previewDescription').textContent = `${pairs.length} thoughtful gifts, all matched up. Now gather everyone around for the reveal!`;
+  $('resultsSummary').textContent = `${pairs.length} matches generated`;
   const list = $('assignmentList');
   list.replaceChildren();
   for (const [giver, recipient] of pairs) {
@@ -128,7 +123,7 @@ function validateAndGenerate(event) {
     groups = setup.families;
     pairs = result;
     showMatches();
-    message(`Success! ${pairs.length} valid assignments are ready.`, true);
+    message();
   } catch (error) {
     invalidateResults();
     message(error instanceof Error ? error.message : 'Something went wrong. Please review your setup.');
@@ -212,7 +207,7 @@ function drawWheel() {
 function updateProgress() {
   $('progressText').textContent = `${revealed} of ${pairs?.length || 0} revealed`;
   $('progressFill').style.width = `${pairs ? revealed / pairs.length * 100 : 0}%`;
-  $('stageStep').textContent = pairs ? `GIFT ${Math.min(revealed + 1, pairs.length)} OF ${pairs.length}` : 'THE GRAND REVEAL';
+  $('stageStep').textContent = pairs ? `Pair ${Math.min(revealed + 1, pairs.length)} of ${pairs.length}` : '';
 }
 function setStageState(next) {
   stageState = next;
@@ -220,25 +215,25 @@ function setStageState(next) {
   const action = $('spinAction');
   action.disabled = false;
   if (next === 'idle') {
-    $('stageTitle').textContent = "It’s your turn to give…";
+    $('stageTitle').textContent = 'Giver';
     $('giverDisplay').textContent = currentGiver();
-    $('stageInstruction').textContent = 'Who will their gift go to?';
-    action.innerHTML = 'Charge the spin <span>✳</span>';
+    $('stageInstruction').textContent = 'Start the spin';
+    action.textContent = 'Charge';
   } else if (next === 'charging') {
-    $('stageInstruction').textContent = 'Feel lucky? Hit spin to set the power!';
-    action.innerHTML = 'Spin the wheel <span>↗</span>';
+    $('stageInstruction').textContent = 'Press Spin to lock power';
+    action.textContent = 'Spin';
   } else if (next === 'spinning') {
-    $('stageInstruction').textContent = 'The wheel is deciding…';
-    action.innerHTML = 'Skip the animation <span>→</span>';
+    $('stageInstruction').textContent = 'Spinning';
+    action.textContent = 'Skip';
   } else if (next === 'result') {
-    $('stageInstruction').textContent = 'A perfect little surprise.';
-    action.innerHTML = revealed + 1 === pairs.length ? 'Finish the exchange <span>✳</span>' : 'Next giver <span>→</span>';
+    $('stageInstruction').textContent = '';
+    action.textContent = revealed + 1 === pairs.length ? 'Finish' : 'Next';
   } else if (next === 'done') {
-    $('stageStep').textContent = 'ALL GIFTS HAVE FOUND THEIR HOME';
-    $('stageTitle').textContent = 'The joy goes around.';
-    $('giverDisplay').textContent = 'Happy gifting! ✳';
-    $('stageInstruction').textContent = 'Every person has someone special to give to.';
-    action.innerHTML = 'Replay the reveal <span>↻</span>';
+    $('stageStep').textContent = `${pairs.length} of ${pairs.length}`;
+    $('stageTitle').textContent = 'Complete';
+    $('giverDisplay').textContent = 'All matches revealed';
+    $('stageInstruction').textContent = '';
+    action.textContent = 'Replay';
   }
 }
 function openStage() {
@@ -249,7 +244,6 @@ function openStage() {
   $('stage').hidden = false;
   document.body.classList.add('stage-open');
   $('resultOverlay').hidden = true;
-  $('confetti').replaceChildren();
   setStageState('idle');
   updateProgress();
   requestAnimationFrame(drawWheel);
@@ -261,7 +255,6 @@ function closeStage() {
   $('stage').hidden=true;
   document.body.classList.remove('stage-open');
   $('resultOverlay').hidden=true;
-  $('confetti').replaceChildren();
   if (document.fullscreenElement === $('stage')) document.exitFullscreen().catch(()=>{});
   if (previousFocus?.focus) previousFocus.focus();
 }
@@ -328,18 +321,6 @@ function beginSpin() {
   setStageState('spinning');
   animationId=requestAnimationFrame(animateSpin);
 }
-function confettiBurst() {
-  if (reduceMotion.matches) return;
-  const container=$('confetti'); container.replaceChildren();
-  for (let i=0;i<45;i++) {
-    const item=document.createElement('span');
-    item.style.left=`${Math.random()*100}%`;
-    item.style.background=palette[i%palette.length];
-    item.style.animationDelay=`${Math.random()*.3}s`;
-    item.style.setProperty('--drift', `${Math.random()*240-120}px`);
-    container.append(item);
-  }
-}
 function finishSpin() {
   cancelAnimationFrame(animationId);
   currentAngle=endAngle;
@@ -348,13 +329,11 @@ function finishSpin() {
   $('resultGiver').textContent=currentGiver();
   $('resultRecipient').textContent=currentRecipient();
   $('resultOverlay').hidden=false;
-  confettiBurst();
   tickSound();
   $('spinAction').focus();
 }
 function nextReveal() {
   $('resultOverlay').hidden=true;
-  $('confetti').replaceChildren();
   revealed++;
   updateProgress();
   if (revealed>=pairs.length) {
@@ -371,7 +350,7 @@ function stageAction() {
   else if (stageState === 'charging') beginSpin();
   else if (stageState === 'spinning') finishSpin();
   else if (stageState === 'result') nextReveal();
-  else if (stageState === 'done') { revealed=0; currentAngle=0; $('confetti').replaceChildren(); updateProgress(); setStageState('idle'); drawWheel(); }
+  else if (stageState === 'done') { revealed=0; currentAngle=0; updateProgress(); setStageState('idle'); drawWheel(); }
 }
 function toggleFullscreen() {
   if ($('stage').hidden) return;
@@ -391,14 +370,13 @@ $('exampleBtn').addEventListener('click', () => {
   $('families').value='Andersons: Harper, Owen, Mia\nParkers: Emma, Noah, Ava\nRiveras: Luca, Sofia, Mateo';
   $('avoidPairs').value='';$('fixedPairs').value='';
   $('allowWithin').checked=false;$('allowReciprocal').checked=false;
-  saveSetup();refreshStats();invalidateResults();message('Example loaded. Make the matches when you’re ready.',true);
+  saveSetup();refreshStats();invalidateResults();message();
 });
 $('clearBtn').addEventListener('click', () => {
   const any = fields.some(name => $(name).type==='checkbox' ? $(name).checked : Boolean($(name).value.trim()));
   if (any && !confirm('Clear the current setup and all generated matches?')) return;
   for (const name of fields) { if ($(name).type==='checkbox') $(name).checked=false; else $(name).value=''; }
   invalidateResults();saveSetup();refreshStats();message();
-  $('previewDescription').textContent='Your exchange is waiting to be made. Add your people, set your rules, and we’ll do the rest.';
 });
 $('avoidFile').addEventListener('change',()=>importFileText($('avoidFile'),$('avoidPairs')));
 $('fixedFile').addEventListener('change',()=>importFileText($('fixedFile'),$('fixedPairs')));
@@ -406,7 +384,7 @@ $('toggleAssignments').addEventListener('click',()=>{
   const show=$('assignmentsPanel').hidden;
   $('assignmentsPanel').hidden=!show;
   $('toggleAssignments').setAttribute('aria-expanded',String(show));
-  $('toggleAssignments').innerHTML=show?'Hide private assignments <span>⌃</span>':'Show private assignments <span>⌄</span>';
+  $('toggleAssignments').textContent=show?'Hide assignments':'Show assignments';
 });
 $('exportText').addEventListener('click',()=>exportPairs('txt'));
 $('exportJson').addEventListener('click',()=>exportPairs('json'));
