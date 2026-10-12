@@ -3,109 +3,99 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#192b26">
-  <meta name="description" content="Plan a thoughtful gift exchange with smart pairing rules and a delightful spinning wheel. Completely private and free.">
-  <title>Gather & Give — Gift Exchange Studio</title>
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="description" content="Set up a gift exchange, apply pairing rules, and reveal assignments with a spinner. Runs locally in your browser.">
+  <title>Gift Exchange</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="src/app.js"></script>
 </head>
 <body>
-  <div class="app-shell">
+  <main class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Gather & Give home">
-        <span class="brand-mark" aria-hidden="true">✳</span>
-        <span>gather<span class="brand-amp">&</span>give<span class="brand-dot">.</span></span>
-      </a>
-      <div class="topbar-right">
-        <span class="privacy-chip"><span class="privacy-dot"></span> Private by design</span>
-        <a class="source-link" href="https://github.com/lasquires/gift_exchange_setup" target="_blank" rel="noopener noreferrer">Original project <span aria-hidden="true">↗</span></a>
-      </div>
+      <h1>Gift Exchange</h1>
+      <span class="topbar-meta">Runs in your browser · <a href="https://github.com/lasquires/gift_exchange_setup" target="_blank" rel="noopener noreferrer">Source ↗</a></span>
     </header>
 
-    <main>
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <div class="eyebrow"><span class="sparkle">✳</span> THE GIFT EXCHANGE STUDIO <span class="thin-line"></span> EST. WITH LOVE</div>
-          <h1 id="hero-title">A little magic in<br><em>the giving.</em></h1>
-          <p>Thoughtful pairings, no awkward duplicates, and a grand reveal everyone will remember. All right here in your browser.</p>
-          <div class="hero-pills"><span>✦ Smart pairings</span><span>◌ Interactive reveal</span><span>♡ No accounts needed</span></div>
+    <section class="card setup" aria-labelledby="setupTitle">
+      <h2 id="setupTitle">Setup</h2>
+      <form id="exchangeForm" novalidate>
+        <div class="field-block">
+          <label for="occasion">Exchange name</label>
+          <input id="occasion" name="occasion" type="text" maxlength="100" placeholder="Christmas 2026" autocomplete="off">
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="orb orb-outer"><div class="orb orb-inner"><span class="art-star">✳</span></div></div>
-          <span class="art-diamond d1">✧</span><span class="art-diamond d2">✦</span><span class="art-diamond d3">✧</span>
-          <span class="orbit-label">THE JOY IS IN THE GIVING ✦</span>
+
+        <div class="field-block">
+          <div class="field-head"><label for="families">Participants</label><button type="button" id="exampleBtn" class="text-action">Load example</button></div>
+          <textarea id="families" name="families" rows="6" spellcheck="false" placeholder="Smith: Alice, Bob, Carol&#10;Jones: David, Erin, Finn"></textarea>
+          <p class="helper">One group per line, members separated by commas. Each person needs a unique name. <span id="peopleCount">0 people</span></p>
         </div>
-      </section>
 
-      <div class="workspace">
-        <section class="builder card" aria-labelledby="builder-title">
-          <div class="card-header"><div><span class="section-kicker">01 / THE PLAN</span><h2 id="builder-title">Set the scene</h2><p>A few details are all it takes to make something lovely.</p></div><span class="header-flower" aria-hidden="true">✿</span></div>
-          <form id="exchangeForm" novalidate>
+        <fieldset class="rule-options">
+          <legend>Rules</legend>
+          <label><input id="allowWithin" type="checkbox"> Allow gifts within the same group</label>
+          <label><input id="allowReciprocal" type="checkbox"> Allow two-way exchanges (A ↔ B)</label>
+        </fieldset>
+
+        <details id="advancedOptions" class="advanced">
+          <summary>Exclusions and fixed assignments</summary>
+          <div class="advanced-fields">
             <div class="field-block">
-              <label for="occasion">Give this exchange a name</label>
-              <input id="occasion" name="occasion" type="text" maxlength="100" placeholder="e.g. Christmas with the cousins" autocomplete="off">
+              <label for="avoidPairs">Exclude pairs</label>
+              <p class="helper">One giver → recipient per line. Useful for last year's matches.</p>
+              <textarea id="avoidPairs" rows="3" spellcheck="false" placeholder="Alice -> David"></textarea>
+              <div class="import-row"><label class="file-label" for="avoidFile">Import TXT/CSV</label><input type="file" id="avoidFile" accept=".txt,.csv,text/plain,text/csv" multiple><span id="avoidCount">0 excluded pairs</span></div>
             </div>
             <div class="field-block">
-              <div class="field-title"><label for="families">Who's joining?</label><button type="button" class="inline-action" id="exampleBtn">Try an example ↗</button></div>
-              <p class="field-help">One family or group per line. Give each a name, then list the people separated by commas.</p>
-              <textarea id="families" name="families" rows="6" spellcheck="false" placeholder="Smith Family: Alice, Ben, Caroline&#10;Johnson Family: David, Elena, Finn&#10;Friends: Grace, Henry"></textarea>
-              <div class="input-foot"><span>Each participant must have a unique name.</span><span id="peopleCount">0 people</span></div>
+              <label for="fixedPairs">Fixed assignments</label>
+              <p class="helper">These matches are locked in and must still satisfy the rules.</p>
+              <textarea id="fixedPairs" rows="3" spellcheck="false" placeholder="Carol -> Erin"></textarea>
+              <div class="import-row"><label class="file-label" for="fixedFile">Import TXT/CSV</label><input type="file" id="fixedFile" accept=".txt,.csv,text/plain,text/csv" multiple><span id="fixedCount">0 fixed pairs</span></div>
             </div>
+          </div>
+        </details>
 
-            <div class="field-block rules-block"><div class="field-title"><h3>The ground rules</h3><span class="tiny-badge">SMART DEFAULTS</span></div>
-              <label class="rule-option" for="allowWithin"><span class="rule-icon">⌂</span><span class="rule-copy"><strong>Gifts within the same group</strong><small>Allow family members to draw each other</small></span><span class="switch"><input id="allowWithin" type="checkbox"><span class="track"></span></span></label>
-              <label class="rule-option" for="allowReciprocal"><span class="rule-icon">⇄</span><span class="rule-copy"><strong>Two-way exchanges</strong><small>Allow A → B and B → A in the same round</small></span><span class="switch"><input id="allowReciprocal" type="checkbox"><span class="track"></span></span></label>
-            </div>
+        <div id="message" class="message" role="alert" aria-live="polite" hidden></div>
+        <div class="form-actions">
+          <button class="btn primary" id="generateBtn" type="submit">Generate assignments</button>
+          <button type="button" class="btn subtle" id="clearBtn">Clear</button>
+        </div>
+      </form>
+    </section>
 
-            <details class="advanced" id="advancedOptions">
-              <summary><span><span class="advanced-icon">✳</span> Fine-tune the pairings <small>Optional</small></span><span class="chevron" aria-hidden="true">⌄</span></summary>
-              <div class="advanced-body">
-                <div class="field-block"><label for="avoidPairs">Pairs to avoid <span class="subdued">· past years / special exclusions</span></label><p class="field-help">These giver → recipient combinations will never be chosen.</p><textarea id="avoidPairs" rows="3" spellcheck="false" placeholder="Alice -> David&#10;Ben -> Elena"></textarea><div class="import-row"><label class="file-label" for="avoidFile">↑ Import .txt or .csv</label><input type="file" id="avoidFile" accept=".txt,.csv,text/plain,text/csv" multiple><span id="avoidCount">0 excluded pairs</span></div></div>
-                <div class="field-block"><label for="fixedPairs">Planned assignments <span class="subdued">· organizer only</span></label><p class="field-help">Lock in any giver → recipient pair; all remaining matches will be generated around it. Planned pairs still follow your rules.</p><textarea id="fixedPairs" rows="3" spellcheck="false" placeholder="Caroline -> Finn"></textarea><div class="import-row"><label class="file-label" for="fixedFile">↑ Import .txt or .csv</label><input type="file" id="fixedFile" accept=".txt,.csv,text/plain,text/csv" multiple><span id="fixedCount">0 planned pairs</span></div></div>
-              </div>
-            </details>
-
-            <div id="message" class="message" role="alert" aria-live="polite" hidden></div>
-            <div class="form-actions"><button class="btn btn-main" id="generateBtn" type="submit"><span aria-hidden="true">✳</span> Make the matches <span class="button-arrow">→</span></button><button type="button" class="btn btn-reset" id="clearBtn">Start fresh</button></div>
-          </form>
-        </section>
-
-        <aside class="results-col" aria-labelledby="preview-title">
-          <section class="preview-card">
-            <div class="preview-top"><span class="section-kicker">02 / THE REVEAL</span><span class="preview-mini-star">✷</span></div>
-            <div class="seal"><div class="seal-inner">♡<span>GIVE WITH<br>JOY</span></div></div>
-            <div class="preview-text"><h2 id="preview-title">The best part<br>is the <em>surprise.</em></h2><p id="previewDescription">Your exchange is waiting to be made. Add your people, set your rules, and we'll do the rest.</p></div>
-            <div class="preview-stats"><div><strong id="groupStat">0</strong><span>Groups</span></div><div><strong id="participantStat">0</strong><span>People</span></div><div><strong id="matchedStat">—</strong><span>Matches</span></div></div>
-            <button id="openStageBtn" class="btn btn-cream" type="button" disabled>Open the big reveal <span>↗</span></button>
-          </section>
-
-          <section class="organizer-card" id="organizerCard" hidden>
-            <div class="organizer-header"><div><span class="section-kicker">ORGANIZER'S COPY</span><h3>Your matches are ready <span aria-hidden="true">✦</span></h3></div><span class="ready-dot"></span></div>
-            <p>Keep the assignments secret until it's time to reveal.</p>
-            <button id="toggleAssignments" class="text-button" type="button" aria-expanded="false">Show private assignments <span>⌄</span></button>
-            <div id="assignmentsPanel" hidden><ol id="assignmentList"></ol></div>
-            <div class="export-actions"><button id="exportText" class="btn btn-outline" type="button">↓ Download .txt</button><button id="exportJson" class="btn btn-outline" type="button">↓ Download .json</button></div>
-            <p class="quiet-note">Only you can see this organizer view on this device. Exported files contain names and should be kept private.</p>
-          </section>
-          <div class="small-note"><span aria-hidden="true">⌁</span><div><strong>Everything stays yours.</strong><p>Nothing is uploaded or sent to a server. Your setup is saved only in this browser.</p></div></div>
-        </aside>
+    <section class="card results" id="organizerCard" aria-labelledby="resultsTitle" hidden>
+      <div class="results-head"><div><h2 id="resultsTitle">Assignments ready</h2><p id="resultsSummary"></p></div><button id="openStageBtn" class="btn primary" type="button" disabled>Open spinner ↗</button></div>
+      <div class="results-actions">
+        <button id="toggleAssignments" class="btn subtle" type="button" aria-expanded="false">Show assignments</button>
+        <button id="exportText" class="btn subtle" type="button">Download TXT</button>
+        <button id="exportJson" class="btn subtle" type="button">Download JSON</button>
       </div>
-      <footer>Made to make giving feel special. <span>✳</span> A lovingly remastered original.</footer>
-    </main>
-  </div>
+      <div id="assignmentsPanel" hidden><ol id="assignmentList"></ol></div>
+    </section>
+  </main>
 
   <section class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="stageTitle" hidden>
-    <header class="stage-header"><div class="stage-brand"><span>✳</span> GATHER & GIVE <span class="stage-slash">/</span> <small id="stageOccasion">Gift Exchange</small></div><div class="stage-tools"><button class="stage-tool" id="soundBtn" type="button" aria-pressed="true" title="Toggle sounds">♫ <span>Sound on</span></button><button class="stage-tool" id="fullscreenBtn" type="button" title="Toggle fullscreen">⤢ <span>Fullscreen</span></button><button class="stage-tool exit-tool" id="closeStageBtn" type="button">✕ <span>Exit</span></button></div></header>
+    <header class="stage-header">
+      <div class="stage-name" id="stageOccasion">Gift Exchange</div>
+      <div class="stage-tools">
+        <button class="stage-tool" id="soundBtn" type="button" aria-pressed="true" title="Toggle sounds">♫ <span>Sound on</span></button>
+        <button class="stage-tool" id="fullscreenBtn" type="button" title="Toggle fullscreen">⛶ <span>Fullscreen</span></button>
+        <button class="stage-tool" id="closeStageBtn" type="button">✕ <span>Exit</span></button>
+      </div>
+    </header>
     <div class="stage-main">
-      <div class="stage-heading"><div class="section-kicker" id="stageStep">THE GRAND REVEAL</div><h2 id="stageTitle">Who's giving a gift?</h2><p id="giverDisplay">A surprise awaits…</p></div>
-      <div class="wheel-assembly"><div class="wheel-glow"></div><div class="wheel-pointer" aria-hidden="true"></div><canvas id="wheel" width="720" height="720" role="img" aria-label="Spinning wheel of gift recipients"></canvas><div class="wheel-center" aria-hidden="true">✳</div></div>
-      <div class="stage-bottom"><div class="power-wrap" id="powerWrap" hidden><div class="power-label"><span>SPIN POWER</span><strong id="powerReadout">0%</strong></div><div class="power-track"><div class="power-fill" id="powerFill"></div><div class="power-dot" id="powerDot"></div></div></div><p id="stageInstruction" role="status" aria-live="polite">Ready to begin the magic?</p><button id="spinAction" type="button" class="btn btn-stage">Begin the reveal <span>✳</span></button><p class="stage-shortcut">Press <kbd>Space</kbd> or tap the button to continue · <kbd>Esc</kbd> to exit</p></div>
+      <div class="stage-heading"><div id="stageStep" class="stage-step">1 of 1</div><h2 id="stageTitle">Giver</h2><p id="giverDisplay"></p></div>
+      <div class="wheel-assembly"><div class="wheel-pointer" aria-hidden="true"></div><canvas id="wheel" width="720" height="720" role="img" aria-label="Spinning wheel of recipients"></canvas></div>
+      <div class="stage-bottom">
+        <div class="power-wrap" id="powerWrap" hidden><div class="power-label"><span>Power</span><strong id="powerReadout">0%</strong></div><div class="power-track"><div class="power-fill" id="powerFill"></div><div class="power-dot" id="powerDot"></div></div></div>
+        <p id="stageInstruction" role="status" aria-live="polite"></p>
+        <button id="spinAction" type="button" class="btn stage-action">Spin</button>
+        <p class="stage-shortcut">Space: continue · F: fullscreen · Esc: exit</p>
+      </div>
     </div>
-    <div class="stage-progress"><div class="progress-caption"><span>THE GIVING CIRCLE</span><strong id="progressText">0 of 0 revealed</strong></div><div class="progress-track"><div id="progressFill"></div></div></div>
-    <div class="result-overlay" id="resultOverlay" hidden aria-live="polite"><div class="result-eyebrow">IT'S A MATCH! <span>✦</span></div><div class="result-giver" id="resultGiver"></div><div class="result-arrow">↓</div><div class="result-recipient" id="resultRecipient"></div><p>A little joy is headed their way.</p></div>
-    <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <div class="stage-progress"><span id="progressText">0 of 0 revealed</span><div class="progress-track"><div id="progressFill"></div></div></div>
+    <div class="result-overlay" id="resultOverlay" hidden aria-live="polite"><div class="result-giver" id="resultGiver"></div><div class="result-arrow">→</div><div class="result-recipient" id="resultRecipient"></div></div>
   </section>
 </body>
 </html>
