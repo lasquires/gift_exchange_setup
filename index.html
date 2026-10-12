@@ -3,123 +3,395 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎁 Gift Exchange Spinner</title>
+  <title>Gift Exchange</title>
   <style>
-    :root {
-      --bg: #f7f7f7;
-      --ink: #222;
-      --accent: #6f95ae;
-      --danger: #d33;
-      --pointer: #ff6b6b;
-      --hud: #111;
 
-      /* Power bar */
+    :root {
+      color-scheme: light;
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --surface-soft: #f7f9fc;
+      --ink: #19283c;
+      --muted: #69798e;
+      --line: #dce4ee;
+      --primary: #285aaf;
+      --primary-hover: #1f498f;
+      --ring: rgba(45, 100, 190, .18);
+      --accent: #dce9f8;
+      --pointer: #e9516b;
+      --danger: #b43b51;
+      --hud: #111;
       --barTrack: #e8ecf5;
       --barEdge: #3cc96b;
-      --barMid:  #ff4d4d;
+      --barMid: #ff4d4d;
       --barDotShadow: rgba(0,0,0,.15);
     }
-    html, body {
-      height: 100%;
+    * { box-sizing: border-box; }
+    html { min-height: 100%; }
+    body {
       margin: 0;
+      min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      padding: 1rem clamp(1rem, 4vw, 2rem);
-      border-bottom: 1px solid #ddd;
-      background: #fff8;
-      position: sticky; top: 0; backdrop-filter: blur(6px);
+    button, input, textarea { font: inherit; }
+    button, .button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    [hidden], .hidden { display: none !important; }
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
     }
-    h1 { margin: 0 0 .5rem 0; font-size: clamp(1.25rem, 2.2vw, 1.75rem); }
-    .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
-    label { font-weight: 600; }
+    .site-header-inner {
+      max-width: 1120px;
+      margin: auto;
+      padding: 21px 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+    .site-header h1 {
+      margin: 0;
+      font-size: 23px;
+      font-weight: 780;
+      line-height: 1.2;
+      letter-spacing: -.85px;
+    }
+    .site-header .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .site-header .version {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .page {
+      width: min(1120px, calc(100% - 48px));
+      margin: 30px auto 70px;
+    }
+    .setup-card, .canvas-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(22, 39, 67, .045);
+    }
+    .setup-card { padding: 27px 29px 24px; }
+    .section-title {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 22px;
+    }
+    .section-title h2 {
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -.48px;
+      margin: 0;
+    }
+    .section-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .setup-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(310px, .88fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+    .families { min-width: 0; }
+    .field { margin-bottom: 20px; }
+    .field label, .rules-title {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #334761;
+      font-weight: 730;
+    }
+    .field-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: -2px 0 11px;
+    }
     input[type="text"], textarea.members {
-      padding: .8rem 1rem; border: 1px solid #cfd4dc; border-radius: .75rem; background: #fff;
-      flex: 1 1 260px; min-width: 260px; outline: none; box-shadow: 0 1px 0 rgba(0,0,0,.02);
-      transition: box-shadow .15s ease, border-color .15s ease; font-size: 0.98rem; line-height: 1.4;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #ccd7e4;
+      border-radius: 10px;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
     }
+    input[type="text"] { min-height: 46px; }
+    textarea.members {
+      min-height: 224px;
+      resize: vertical;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+    input[type="text"]::placeholder, textarea::placeholder { color: #8b98a9; }
     input[type="text"]:focus, textarea.members:focus {
-      border-color: #a7b7c6; box-shadow: 0 0 0 3px rgba(111,149,174,.15);
+      border-color: #5885ca;
+      box-shadow: 0 0 0 4px var(--ring);
     }
-    .chk { display: inline-flex; gap: .45rem; align-items: center; padding: .25rem .5rem; }
-    .families { padding: 1rem clamp(1rem, 4vw, 2rem); display: grid; gap: .5rem; }
-    .controls { padding: 0 clamp(1rem, 4vw, 2rem) 1rem; display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
-    button { border: 0; background: var(--ink); color: #fff; padding: .7rem 1rem; border-radius: .7rem; font-weight: 700; cursor: pointer; }
-    button.secondary { background: #666; }
-    .button.ghost, button.ghost { background: #fff; color: var(--ink); border: 1px solid #ddd; }
-    .canvas-wrap { display:grid; grid-template-columns:1fr; grid-template-rows:minmax(320px,65vh) auto; gap:.5rem; padding:0 clamp(1rem,4vw,2rem) 1.25rem; }
-    canvas { width:100%; height:100%; background: var(--accent); border-radius:1.2rem; box-shadow:0 10px 30px rgba(0,0,0,.08) inset; }
-    .hint { font-size:.95rem; color:#444; background:#fff; border:1px dashed #ddd; padding:.6rem .8rem; border-radius:.7rem; user-select:none; }
-    .hidden { display:none !important; }
-    .grow { flex:1; }
-    .uploadRow { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
-    .mini { font-size:.85rem; color:#444; }
+    button:focus-visible, .button:focus-visible, .dropzone:focus-visible, label:has(input:focus-visible), input:focus-visible {
+      outline: 3px solid #a3c5ff;
+      outline-offset: 2px;
+    }
+    .rules-panel {
+      background: var(--surface-soft);
+      border: 1px solid #e6ecf4;
+      border-radius: 13px;
+      padding: 20px;
+      min-width: 0;
+    }
+    .rules-title { margin-bottom: 14px; font-size: 14px; }
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 12px 0;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .check-row + .check-row { border-top: 1px solid #e6ebf2; }
+    .check-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin: 2px 0 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .check-copy { display: flex; flex-direction: column; gap: 1px; }
+    .check-copy strong { font-size: 13px; font-weight: 690; }
+    .check-copy small { font-size: 12px; color: var(--muted); }
+    .rule-divider {
+      border: 0;
+      height: 1px;
+      margin: 14px 0 17px;
+      background: #dfe6ee;
+    }
+    .uploadRow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px 11px;
+      margin-top: 10px;
+      min-width: 0;
+    }
+    .uploadRow input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .mini { font-size: 12px; color: var(--muted); }
     .dropzone {
-      border:1px dashed #cbd5e1; border-radius:.6rem; padding:.4rem .6rem; background:#fff; color:#333;
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      max-width: 100%;
+      border: 1px dashed #bdcada;
+      border-radius: 7px;
+      background: white;
+      padding: 5px 9px;
+      color: #66768b;
+      font-size: 11px;
+      cursor: default;
     }
-    .dropzone.drag { border-color:#6f95ae; background:#eef6ff; }
-
-    /* Fullscreen: show only the canvas area */
-    .canvas-wrap:fullscreen { padding: 0; grid-template-rows: 1fr; }
+    .dropzone.drag { background: #e4f0ff; border-color: #5c92d9; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 23px;
+      margin-top: 6px;
+      border-top: 1px solid var(--line);
+    }
+    .grow { flex: 1; }
+    button, .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 42px;
+      padding: 10px 17px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-weight: 675;
+      font-size: 13px;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    button:hover, .button:hover { background: var(--primary-hover); }
+    button:active, .button:active { transform: translateY(1px); }
+    button.secondary { background: #17364f; }
+    button.secondary:hover { background: #102a40; }
+    button.ghost, .button.ghost {
+      border-color: #d4dfea;
+      background: white;
+      color: #38516a;
+    }
+    button.ghost:hover, .button.ghost:hover { background: #edf3fa; }
+    .rules-panel button.ghost {
+      padding: 7px 11px;
+      min-height: 34px;
+      font-size: 12px;
+    }
+    .canvas-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: clamp(420px, 65vh, 720px) auto;
+      gap: 13px;
+      margin-top: 20px;
+      padding: 15px;
+      overflow: hidden;
+    }
+    canvas#wheel {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background: var(--accent);
+      touch-action: manipulation;
+    }
+    .hint {
+      padding: 5px 7px 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      user-select: none;
+    }
+    .canvas-wrap:fullscreen {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: #e8eef6;
+      grid-template-rows: minmax(0, 1fr);
+    }
     .canvas-wrap:fullscreen canvas { border-radius: 0; }
     .canvas-wrap:fullscreen .hint { display: none; }
+    @media (max-width: 760px) {
+      .site-header-inner { padding: 18px 19px; }
+      .site-header h1 { font-size: 21px; }
+      .site-header .version { display: none; }
+      .page { width: min(100% - 26px, 600px); margin: 18px auto 38px; }
+      .setup-card { padding: 21px 17px 18px; border-radius: 14px; }
+      .section-title { margin-bottom: 19px; }
+      .setup-grid { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+      .rules-panel { padding: 17px; margin-bottom: 13px; }
+      .controls { gap: 9px; }
+      .controls #generate { flex: 1 1 100%; }
+      .controls .grow { display: none; }
+      .canvas-wrap { padding: 9px; grid-template-rows: clamp(370px, 56vh, 590px) auto; }
+    }
+    @media (max-width: 440px) {
+      .page { width: calc(100% - 20px); }
+      .setup-card { padding: 18px 14px; }
+      textarea.members { min-height: 190px; }
+      .canvas-wrap { grid-template-rows: clamp(345px, 52vh, 460px) auto; }
+      .uploadRow { gap: 6px 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      button, .button, input[type="text"], textarea.members { transition: none; }
+    }
+
   </style>
 </head>
 <body>
-  <header>
-    <h1>Gift Exchange Setup</h1>
-
-    <div class="row">
-      <label for="occasion">Occasion</label>
-      <input id="occasion" type="text" placeholder="Christmas 2025" />
-      <span class="chk"><input id="intra" type="checkbox"><label for="intra">Intrafamilial</label></span>
-      <span class="chk"><input id="recip" type="checkbox"><label for="recip">Reciprocal</label></span>
-      <!-- No-Repeat checkbox removed; avoid list implies no-repeat -->
-    </div>
-
-    <!-- Avoid/No-Repeat importer -->
-    <div class="uploadRow">
-      <input id="avoidFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
-      <button id="uploadAvoid" class="ghost">Import Avoid Pairs</button>
-      <span id="avoidSummary" class="mini">No avoid pairs loaded.</span>
-      <span id="avoidDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
-    </div>
-
-    <!-- Pre-assigned importer (hidden until hotkey, #force, or secret toggle) -->
-    <div id="forceRow" class="uploadRow hidden">
-      <input id="forceFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
-      <button id="uploadForce" class="ghost">Import Other Pairs</button>
-      <span id="forceSummary" class="mini">No pairs loaded.</span>
-      <span id="forceDrop" class="mini dropzone" title="Drop a .txt or .csv here">or drop/paste here</span>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div>
+        <h1>Gift Exchange</h1>
+        <p class="subtitle">Set up your exchange and spin to reveal matches.</p>
+      </div>
+      <span class="version">Browser-only · No sign-in</span>
     </div>
   </header>
 
-  <section class="families" id="families">
-    <label for="familiesBox">Families</label>
-    <textarea id="familiesBox" class="members" rows="8" placeholder="Put each family on a separate line and separate each person with a comma. 
-(Family name is optional as seen below)
-Smith: Alice, Bob, Carol
-Dave, Erin
-Mateo, Sofia, Lucia
-Kim: Jiho, Yuna
-Aarav, Diya, Kavya"></textarea>
-  </section>
+  <main class="page">
+    <section class="setup-card" aria-labelledby="setupTitle">
+      <div class="section-title">
+        <h2 id="setupTitle">Setup</h2>
+        <p>Add participants, choose rules, and generate assignments.</p>
+      </div>
+      <div class="setup-grid">
+        <section class="families" id="families">
+          <div class="field">
+            <label for="occasion">Occasion</label>
+            <input id="occasion" type="text" placeholder="Christmas 2026" />
+          </div>
+          <div class="field">
+            <label for="familiesBox">Families / participants</label>
+            <p class="field-note">One family per line. Separate people with commas.</p>
+            <textarea id="familiesBox" class="members" rows="8" placeholder="Smith: Alice, Bob, Carol&#10;Johnson: Dave, Erin&#10;Jones: Mateo, Sofia, Lucia"></textarea>
+          </div>
+        </section>
+        <aside class="rules-panel" aria-label="Pairing rules">
+          <div class="rules-title">Pairing rules</div>
+          <label class="check-row" for="intra">
+            <input id="intra" type="checkbox" />
+            <span class="check-copy">
+              <strong>Allow same-family pairs</strong>
+              <small>Off by default</small>
+            </span>
+          </label>
+          <label class="check-row" for="recip">
+            <input id="recip" type="checkbox" />
+            <span class="check-copy">
+              <strong>Allow reciprocal pairs</strong>
+              <small>Let two people give to each other</small>
+            </span>
+          </label>
+          <hr class="rule-divider" />
+          <div class="rules-title">Past assignments</div>
+          <div class="mini">Exclude previous giver → recipient pairs.</div>
+          <div class="uploadRow">
+            <input id="avoidFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
+            <button id="uploadAvoid" class="ghost" type="button">Import exclusions</button>
+            <span id="avoidSummary" class="mini">No avoid pairs loaded.</span>
+            <span id="avoidDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
+          </div>
+          <div id="forceRow" class="uploadRow hidden">
+            <input id="forceFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
+            <button id="uploadForce" class="ghost" type="button">Import other pairs</button>
+            <span id="forceSummary" class="mini">No pairs loaded.</span>
+            <span id="forceDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
+          </div>
+        </aside>
+      </div>
+      <div class="controls">
+        <button id="generate" type="button">Generate assignments</button>
+        <a id="downloadLink" class="button ghost hidden" download>Download assignments</a>
+        <span class="grow"></span>
+        <button id="showSpinner" type="button" class="secondary hidden">Show spinner</button>
+        <button id="fsToggle" type="button" class="ghost hidden" title="Toggle Fullscreen (F)">Fullscreen</button>
+        <button id="resetAll" type="button" class="ghost">Reset</button>
+      </div>
+    </section>
 
-  <div class="controls">
-    <button id="generate">Generate Assignments</button>
-    <a id="downloadLink" class="button ghost hidden" download>Download Assignments</a>
-    <span class="grow"></span>
-    <button id="showSpinner" class="secondary hidden">Show Spinner</button>
-    <button id="fsToggle" class="ghost hidden" title="Toggle Fullscreen (F)">Fullscreen</button>
-    <button id="resetAll" class="ghost">Reset</button>
-  </div>
-
-  <section class="canvas-wrap hidden" id="spinnerArea" aria-label="Spin area (tap / click / press space)">
-    <canvas id="wheel"></canvas>
-    <div class="hint" id="hint"></div>
-  </section>
+    <section class="canvas-wrap hidden" id="spinnerArea" aria-label="Spin area (tap, click or press space)">
+      <canvas id="wheel"></canvas>
+      <div class="hint" id="hint"></div>
+    </section>
+  </main>
 
   <script>
   (function(){
