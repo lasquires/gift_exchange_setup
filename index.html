@@ -1053,9 +1053,9 @@
       wheelCtx.restore();
 
       const total=assignments?Object.keys(assignments).length:0;
-      const done=total-pairs.length+(state===STATE_RESULT?1:0);
+      const completed=total-pairs.length;
       $('#stageProgress').textContent=total?
-        'MATCH '+String(Math.min(total,done+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0'):'READY';
+        'MATCH '+String(Math.min(total,completed+1)).padStart(2,'0')+' / '+String(total).padStart(2,'0'):'READY';
       powerPanel.classList.toggle('hidden',state!==STATE_POWER);
       const spinning=state===STATE_SPIN;
       liveRecipient.classList.toggle('is-rolling',spinning);
@@ -1132,8 +1132,8 @@
           const j = Math.floor(Math.random() * (i + 1));
           [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
         }
-        // Reset the next wheel before the next person's spin.
-        currentAngle=0;
+        // The next wheel retains its physical orientation. No position jump
+        // occurs between selecting the next giver and pressing Spin.
         layoutWheel(Object.fromEntries(pairs), wheelCanvas.width, wheelCanvas.height);
         // 4) pick next pair
         iPair = 0;
