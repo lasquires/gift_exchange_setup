@@ -644,7 +644,10 @@
     const forcedPairs = new Map();
 
     // ---------- Parsing helpers ----------
-    const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:|\s+to\s+)\s*(.+)$/;
+    const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:|\s+to\s+)\s*(.+)$/i;
+    // Compare names without regard to capitalization, but keep their spelling for display.
+    const nameKey = name => String(name).trim().toLowerCase();
+    const pairKey = (giver, recipient) => `${nameKey(giver)}\u2192${nameKey(recipient)}`;
 
     function parseAvoidPairs(text){
       const lines = String(text).split(/\r?\n/);
@@ -655,7 +658,7 @@
         if (!m) continue;
         const g = m[1].trim(), r = m[2].trim();
         if (!g || !r) continue;
-        const key = `${g}\u2192${r}`;
+        const key = pairKey(g, r);
         if (!avoidPairsSet.has(key)){ avoidPairsSet.add(key); added++; }
       }
       return added;
@@ -669,7 +672,10 @@
         const m = line.match(LINE_RX); // ignore lines without a delimiter
         if (!m) continue;
         const g = m[1].trim(), r = m[2].trim();
-        if (!g || !r || g === r) continue;
+        if (!g || !r || nameKey(g) === nameKey(r)) continue;
+        // Re-importing the same giver in different case replaces the earlier pair.
+        const existingGiver = [...forcedPairs.keys()].find(key => nameKey(key) === nameKey(g));
+        if (existingGiver !== undefined) forcedPairs.delete(existingGiver);
         forcedPairs.set(g, r);
         added++;
       }
@@ -777,7 +783,11 @@
         const name = parts.length > 1 ? parts[0].trim() : `Family${idx++}`;
         const membersPart = parts.length > 1 ? parts[1] : parts[0];
         const members = membersPart.split(',').map(s => s.trim()).filter(Boolean);
-        if (members.length) families[name] = members;
+        if (members.length) {
+          const existingGroup = Object.keys(families).find(group => nameKey(group) === nameKey(name));
+          const group = existingGroup || name;
+          families[group] = [...(families[group] || []), ...members];
+        }
       }
       return families;
     }
@@ -786,20 +796,31 @@
     function generateAssignments(families, occasionStr, noIntra=true, noRecip=true, noRepeat=false,
                                  avoidSet=new Set(), forcedMap=new Map()) {
 
-      const peopleSet = new Set(Object.values(families).flat());
-      for (const [g,r] of forcedMap.entries()){ peopleSet.add(g); peopleSet.add(r); }
-      const people = Array.from(peopleSet);
+      // One person per case-insensitive name; prefer the spelling entered in Setup.
+      const peopleByKey = new Map();
+      const addPerson = name => {
+        const key = nameKey(name);
+        if (key && !peopleByKey.has(key)) peopleByKey.set(key, String(name).trim());
+      };
+      Object.values(families).flat().forEach(addPerson);
+      for (const [g,r] of forcedMap.entries()){ addPerson(g); addPerson(r); }
+      const people = Array.from(peopleByKey.values());
+      const displayName = name => peopleByKey.get(nameKey(name));
 
       const famOf = new Map();
-      for (const [fam, members] of Object.entries(families)) for (const m of members) famOf.set(m, fam);
-      const inSameFamily = (a,b) => famOf.get(a) === famOf.get(b);
+      for (const [fam, members] of Object.entries(families))
+        for (const m of members) famOf.set(nameKey(m), nameKey(fam));
+      const inSameFamily = (a,b) => {
+        const group = famOf.get(nameKey(a));
+        return group !== undefined && group === famOf.get(nameKey(b));
+      };
 
       function violates(assignments, giver, recipient){
-        if (giver === recipient) return true;
+        if (nameKey(giver) === nameKey(recipient)) return true;
         if (noIntra && inSameFamily(giver, recipient)) return true;
         if (noRecip && assignments.get(recipient) === giver) return true;
         for (const r of assignments.values()) if (r === recipient) return true;
-        if (noRepeat && avoidSet.size && avoidSet.has(`${giver}\u2192${recipient}`)) return true;
+        if (noRepeat && avoidSet.size && avoidSet.has(pairKey(giver, recipient))) return true;
         return false;
       }
 
@@ -813,7 +834,8 @@
 
         const assignments = new Map();
 
-        for (const [g,r] of forcedMap.entries()){
+        for (const [rawG,rawR] of forcedMap.entries()){
+          const g = displayName(rawG), r = displayName(rawR);
           if (g === r) continue;
           assignments.set(g, r);
         }
@@ -827,7 +849,7 @@
         }
 
         for (const [g,r] of forcedMap.entries()){
-          if (assignments.get(g) !== r){ failed = true; break; }
+          if (assignments.get(displayName(g)) !== displayName(r)){ failed = true; break; }
         }
         if (failed) continue;
 
