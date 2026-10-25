@@ -604,20 +604,36 @@
     const uploadAvoidBtn = $('#uploadAvoid');
     const avoidSummary = $('#avoidSummary');
     const avoidDrop = $('#avoidDrop');
+    const avoidManual = $('#avoidManual');
 
     const forceRow = $('#forceRow');
     const forceFile = $('#forceFile');
     const uploadForceBtn = $('#uploadForce');
     const forceSummary = $('#forceSummary');
     const forceDrop = $('#forceDrop');
+    const forceManual = $('#forceManual');
+    const applyForce = $('#applyForce');
+    const secretTitle = $('#secretTitle');
+    const secretStatus = $('#secretStatus');
+    const avoidPairsSet = new Set();
+    const forcedPairs = new Map();
 
-    // ---------- Hidden force UI toggle ----------
+    // ---------- Hidden advanced mode ----------
     function setForceUI(visible){
       forceRow.classList.toggle('hidden', !visible);
-      console.info('[Rigged Wheel] Pre-assigned importer:', visible ? 'VISIBLE' : 'HIDDEN');
+      if (visible) syncForceEditor();
     }
-    // Show if URL has #force
+    // Keep the existing hidden shortcuts and add five rapid title clicks.
     setForceUI(location.hash.includes('force'));
+    let titleClicks=0, firstTitleClick=0;
+    secretTitle.addEventListener('click', ()=>{
+      const now=Date.now();
+      if(now-firstTitleClick>4000){titleClicks=0;firstTitleClick=now;}
+      if(++titleClicks===5){
+        titleClicks=0;firstTitleClick=0;
+        setForceUI(forceRow.classList.contains('hidden'));
+      }
+    });
     // Hotkey: Ctrl+Alt+Shift+F
     window.addEventListener('keydown', (e)=>{
       if (e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyF'){
@@ -655,10 +671,6 @@
       '#ad71c9','#dd80a9','#de9c46','#628fc5',
       '#96b768','#d87866','#877dc9','#e4a84f'
     ];
-
-    // ---------- Stores ----------
-    const avoidPairsSet = new Set();
-    const forcedPairs = new Map();
 
     // ---------- Parsing helpers ----------
     const LINE_RX = /^(.+?)\s*(?:->|→|,|;|:|\s+to\s+)\s*(.+)$/i;
@@ -699,17 +711,68 @@
       return added;
     }
 
+    function allAvoidPairs(){
+      const combined=new Set(avoidPairsSet);
+      for(const raw of avoidManual.value.split(/\r?\n/)){
+        const match=raw.trim().match(LINE_RX);
+        if(match && match[1].trim() && match[2].trim())
+          combined.add(pairKey(match[1],match[2]));
+      }
+      return combined;
+    }
     function summarizeAvoid(){
-      avoidSummary.textContent = avoidPairsSet.size
-        ? `${avoidPairsSet.size} avoid pairs loaded.`
-        : 'No avoid pairs loaded.';
+      const count=allAvoidPairs().size;
+      avoidSummary.textContent=count ? count+' avoid pairs loaded.' : 'No avoid pairs loaded.';
+    }
+    avoidManual.addEventListener('input',summarizeAvoid);
+
+    function syncForceEditor(){
+      forceManual.value=Array.from(forcedPairs,([g,r])=>g+' -> '+r).join('\n');
     }
     function summarizeForce(){
-      const n = forcedPairs.size;
-      forceSummary.textContent = n
-        ? `${n} pair(s) loaded.`
-        : 'No pair(s) loaded.';
+      const n=forcedPairs.size;
+      forceSummary.textContent=n ? n+' enforced pair(s) loaded.' : 'No enforced pairs loaded.';
     }
+    applyForce.addEventListener('click',()=>{
+      const text=forceManual.value;
+      forcedPairs.clear();parseForcePairs(text);
+      summarizeForce();syncForceEditor();
+      notifySecret('Enforced pairs saved.');
+    });
+    let toastTimer;
+    function notifySecret(message){
+      secretStatus.textContent=message;
+      secretStatus.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer=setTimeout(()=>secretStatus.classList.add('hidden'),2600);
+    }
+    function importForcedText(text){
+      const added=parseForcePairs(text);
+      summarizeForce();syncForceEditor();
+      notifySecret(added ? added+' enforced pair(s) imported.' : 'No valid pairs found. Use Alice -> Bob.');
+    }
+    async function importForcedFiles(files){
+      let added=0;
+      try{
+        for(const file of files) added+=parseForcePairs(await file.text());
+        summarizeForce();syncForceEditor();
+        notifySecret(added ? added+' enforced pair(s) imported.' : 'No readable pairs found. Try a TXT or CSV file.');
+      }catch(err){notifySecret('Could not read this file.');}
+    }
+    // The ordinary heading doubles as a hidden drag/drop and clipboard target.
+    secretTitle.addEventListener('dragover',e=>{
+      if(e.dataTransfer?.types?.includes('Files')||e.dataTransfer?.types?.includes('text/plain')){
+        e.preventDefault();e.dataTransfer.dropEffect='copy';
+      }
+    });
+    secretTitle.addEventListener('drop',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(e.dataTransfer?.files?.length) importForcedFiles(Array.from(e.dataTransfer.files));
+      else importForcedText(e.dataTransfer?.getData('text/plain')||'');
+    });
+    secretTitle.addEventListener('paste',e=>{
+      e.preventDefault();importForcedText(e.clipboardData?.getData('text/plain')||'');
+    });
 
     // ---------- Avoid importer wiring (multi-file) ----------
     uploadAvoidBtn.addEventListener('click', () => {
@@ -755,7 +818,7 @@
       if (!forceFile.files?.length) return;
       for (const f of forceFile.files) {
         const r = new FileReader();
-        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); };
+        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); syncForceEditor(); };
         r.readAsText(f);
       }
       forceFile.value = '';
@@ -772,13 +835,13 @@
       if (!files?.length) return;
       for (const f of files) {
         const r = new FileReader();
-        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); };
+        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); syncForceEditor(); };
         r.readAsText(f);
       }
     });
     forceDrop.addEventListener('paste', e => {
       const t = e.clipboardData?.getData('text'); if (!t) return;
-      parseForcePairs(t); summarizeForce();
+      parseForcePairs(t); summarizeForce(); syncForceEditor();
     });
 
     // swallow Enter on those buttons (prevents reopening)
