@@ -209,6 +209,14 @@
       cursor: default;
     }
     .dropzone.drag { background: #e4f0ff; border-color: #5c92d9; }
+    .pairs-input {display:block;width:100%;min-height:84px;resize:vertical;margin:9px 0 6px;padding:9px 11px;background:white;color:var(--ink);border:1px solid #ccd7e4;border-radius:9px;font-size:13px;line-height:1.5}
+    .pairs-input:focus {outline:2px solid #a3c5ff;outline-offset:1px}
+    .advanced-pairs {display:flex;flex-direction:column;align-items:flex-start;flex-basis:100%;gap:6px}
+    .advanced-pairs .rules-title {margin-bottom:0}
+    .advanced-pairs .pairs-input {margin:0}
+    #secretTitle {user-select:none;-webkit-user-select:none}
+    #secretTitle:focus-visible {outline:2px solid #a3c5ff;outline-offset:3px;border-radius:3px}
+    .secret-status {position:fixed;z-index:100;bottom:22px;right:22px;max-width:min(90vw,370px);padding:10px 15px;border-radius:10px;color:white;background:#17364f;box-shadow:0 6px 25px #0003;font-size:13px}
     .controls {
       display: flex;
       gap: 10px;
@@ -448,6 +456,7 @@
     </div>
   </header>
 
+  <div id="secretStatus" class="secret-status hidden" role="status" aria-live="polite"></div>
   <main class="page">
     <section class="setup-card" aria-labelledby="setupTitle">
       <div class="section-title">
@@ -485,6 +494,8 @@
           <hr class="rule-divider" />
           <div class="rules-title">Past assignments</div>
           <div class="mini">Exclude previous giver → recipient pairs.</div>
+          <textarea id="avoidManual" class="pairs-input" rows="3" spellcheck="false" aria-label="Avoid pairs, one per line" placeholder="Alice -> Bob&#10;Charlie -> Diana"></textarea>
+          <div class="mini">Type one pair per line, import files, or use both.</div>
           <div class="uploadRow">
             <input id="avoidFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
             <button id="uploadAvoid" class="ghost" type="button">Import exclusions</button>
@@ -492,8 +503,14 @@
             <span id="avoidDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
           </div>
           <div id="forceRow" class="uploadRow hidden">
+            <div class="advanced-pairs">
+              <div class="rules-title">Advanced mode · Enforced pairs</div>
+              <div class="mini">Edit the complete list, one giver → recipient per line, then apply.</div>
+              <textarea id="forceManual" class="pairs-input" rows="3" spellcheck="false" aria-label="Enforced pairs, one per line" placeholder="Alice -> Bob"></textarea>
+              <button id="applyForce" class="ghost" type="button">Apply enforced pairs</button>
+            </div>
             <input id="forceFile" type="file" accept=".txt,.csv,.pdf" class="hidden" multiple />
-            <button id="uploadForce" class="ghost" type="button">Import other pairs</button>
+            <button id="uploadForce" class="ghost" type="button">Import enforced pairs</button>
             <span id="forceSummary" class="mini">No pairs loaded.</span>
             <span id="forceDrop" tabindex="0" class="mini dropzone" title="Drop or paste .txt/.csv pairs here">Drop / paste pairs</span>
           </div>
