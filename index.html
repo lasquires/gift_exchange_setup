@@ -943,11 +943,28 @@
         }
 
         let failed = false;
-        for (const giver of shuffled){
-          if (assignments.has(giver)) continue;
-          const candidates = people.filter(p => !violates(assignments, giver, p));
-          if (!candidates.length){ failed = true; break; }
-          assignments.set(giver, candidates[Math.floor(Math.random() * candidates.length)]);
+        // Minimum Remaining Values (MRV): assign the most constrained giver first.
+        // Recalculate after each choice because used recipients change the options.
+        // Randomize ties and recipients to preserve the exchange's unpredictability.
+        const remaining = shuffled.filter(giver => !assignments.has(giver));
+        while (remaining.length) {
+          let fewestOptions = Infinity;
+          let mostConstrained = [];
+          for (const giver of remaining) {
+            const candidates = people.filter(p => !violates(assignments, giver, p));
+            if (candidates.length < fewestOptions) {
+              fewestOptions = candidates.length;
+              mostConstrained = [{ giver, candidates }];
+            } else if (candidates.length === fewestOptions) {
+              mostConstrained.push({ giver, candidates });
+            }
+          }
+          if (fewestOptions === 0) { failed = true; break; }
+
+          const choice = mostConstrained[Math.floor(Math.random() * mostConstrained.length)];
+          const recipient = choice.candidates[Math.floor(Math.random() * choice.candidates.length)];
+          assignments.set(choice.giver, recipient);
+          remaining.splice(remaining.indexOf(choice.giver), 1);
         }
 
         for (const [g,r] of forcedMap.entries()){
