@@ -214,9 +214,9 @@
     .advanced-pairs {display:flex;flex-direction:column;align-items:flex-start;flex-basis:100%;gap:6px}
     .advanced-pairs .rules-title {margin-bottom:0}
     .advanced-pairs .pairs-input {margin:0}
-    #secretTitle {user-select:none;-webkit-user-select:none}
+    #secretTitle {display:inline-block;vertical-align:middle;user-select:none;-webkit-user-select:none}
     #secretTitle:focus-visible {outline:2px solid #a3c5ff;outline-offset:3px;border-radius:3px}
-    .secret-status {position:fixed;z-index:100;bottom:22px;right:22px;max-width:min(90vw,370px);padding:10px 15px;border-radius:10px;color:white;background:#17364f;box-shadow:0 6px 25px #0003;font-size:13px}
+    .secret-status {display:inline-block;vertical-align:middle;margin-left:10px;color:var(--muted);font-size:12px;font-weight:600}
     .controls {
       display: flex;
       gap: 10px;
@@ -449,15 +449,14 @@
   <header class="site-header">
     <div class="site-header-inner">
       <div>
-        <h1 id="secretTitle" tabindex="0">Gift Exchange</h1>
+        <h1 id="secretTitle" tabindex="0">Gift Exchange</h1><span id="secretStatus" class="secret-status hidden" role="status" aria-live="polite">Saved</span>
         <p class="subtitle">Set up your exchange and spin to reveal matches.</p>
       </div>
       <span class="version">Browser-only · No sign-in</span>
     </div>
   </header>
 
-  <div id="secretStatus" class="secret-status hidden" role="status" aria-live="polite"></div>
-  <main class="page">
+   <main class="page">
     <section class="setup-card" aria-labelledby="setupTitle">
       <div class="section-title">
         <h2 id="setupTitle">Setup</h2>
@@ -737,7 +736,7 @@
       const text=forceManual.value;
       forcedPairs.clear();parseForcePairs(text);
       summarizeForce();syncForceEditor();
-      notifySecret('Enforced pairs saved.');
+      notifySecret('Saved');
     });
     let toastTimer;
     function notifySecret(message){
@@ -749,14 +748,14 @@
     function importForcedText(text){
       const added=parseForcePairs(text);
       summarizeForce();syncForceEditor();
-      notifySecret(added ? added+' enforced pair(s) imported.' : 'No valid pairs found. Use Alice -> Bob.');
+      notifySecret(added ? 'Saved' : 'No valid pairs found.');
     }
     async function importForcedFiles(files){
       let added=0;
       try{
         for(const file of files) added+=parseForcePairs(await file.text());
         summarizeForce();syncForceEditor();
-        notifySecret(added ? added+' enforced pair(s) imported.' : 'No readable pairs found. Try a TXT or CSV file.');
+        notifySecret(added ? 'Saved' : 'No valid pairs found.');
       }catch(err){notifySecret('Could not read this file.');}
     }
     // The ordinary heading doubles as a hidden drag/drop and clipboard target.
