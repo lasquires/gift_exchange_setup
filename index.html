@@ -797,11 +797,14 @@
     );
     avoidDrop.addEventListener('drop', e => {
       const files = e.dataTransfer?.files;
-      if (!files?.length) return;
-      for (const f of files) {
-        const r = new FileReader();
-        r.onload = () => { parseAvoidPairs(r.result || ''); summarizeAvoid(); };
-        r.readAsText(f);
+      if(files?.length){
+        for(const f of files){
+          const r=new FileReader();
+          r.onload=()=>{parseAvoidPairs(r.result||'');summarizeAvoid();};
+          r.readAsText(f);
+        }
+      }else{
+        parseAvoidPairs(e.dataTransfer?.getData('text/plain')||'');summarizeAvoid();
       }
     });
     avoidDrop.addEventListener('paste', e => {
@@ -832,11 +835,14 @@
     );
     forceDrop.addEventListener('drop', e => {
       const files = e.dataTransfer?.files;
-      if (!files?.length) return;
-      for (const f of files) {
-        const r = new FileReader();
-        r.onload = () => { parseForcePairs(r.result || ''); summarizeForce(); syncForceEditor(); };
-        r.readAsText(f);
+      if(files?.length){
+        for(const f of files){
+          const r=new FileReader();
+          r.onload=()=>{parseForcePairs(r.result||'');summarizeForce();syncForceEditor();};
+          r.readAsText(f);
+        }
+      }else{
+        parseForcePairs(e.dataTransfer?.getData('text/plain')||'');summarizeForce();syncForceEditor();
       }
     });
     forceDrop.addEventListener('paste', e => {
@@ -873,6 +879,23 @@
     }
 
     // ---------- Assignment generation ----------
+    function forcedConflict(families,avoidSet,noIntra,noRecip){
+      const usedRecipients=new Set(),fixed=new Map(),familyOf=new Map();
+      for(const [group,members] of Object.entries(families))
+        for(const member of members)familyOf.set(nameKey(member),nameKey(group));
+      for(const [giver,recipient] of forcedPairs){
+        const g=nameKey(giver),r=nameKey(recipient);
+        if(g===r)return giver+' cannot give to themselves.';
+        if(usedRecipients.has(r))return recipient+' is assigned to multiple givers.';
+        if(avoidSet.has(pairKey(giver,recipient)))return giver+' → '+recipient+' is both avoided and enforced.';
+        if(noIntra && familyOf.has(g) && familyOf.get(g)===familyOf.get(r))
+          return giver+' → '+recipient+' conflicts with the same-family rule.';
+        usedRecipients.add(r);fixed.set(g,r);
+      }
+      if(noRecip)for(const [g,r] of fixed)
+        if(fixed.get(r)===g)return 'Two enforced pairs conflict with the reciprocal-pair rule.';
+      return null;
+    }
     function generateAssignments(families, occasionStr, noIntra=true, noRecip=true, noRepeat=false,
                                  avoidSet=new Set(), forcedMap=new Map()) {
 
@@ -1343,12 +1366,15 @@
         alert('Add families or import pre-assigned pairs first.'); return;
       }
 
-      // Auto-enable noRepeat if any avoid pairs are loaded
-      const noRepeat = avoidPairsSet.size > 0;
+      // Combine typed and imported exclusions.
+      const exclusions=allAvoidPairs();
+      const noRepeat=exclusions.size>0;
 
       // Flip logic: checkboxes mean "allow"; generator expects "forbid" booleans
       const noIntra = !intraInput.checked;
       const noRecip = !recipInput.checked;
+      const conflict=forcedConflict(families,exclusions,noIntra,noRecip);
+      if(conflict){alert('Enforced pair conflict: '+conflict);return;}
 
       const assn = generateAssignments(
         families,
@@ -1356,7 +1382,7 @@
         noIntra,
         noRecip,
         noRepeat,
-        avoidPairsSet,
+        exclusions,
         forcedPairs
       );
       if (!assn) return;
@@ -1426,8 +1452,10 @@
       receivers=[]; state=STATE_WAIT; p=0; dir=+1; powerVal=0; pendingReset=false; lastResultIndex=-1;
       prevTickIndex = null;
 
-      avoidPairsSet.clear(); forcedPairs.clear();
-      summarizeAvoid(); summarizeForce();
+      avoidPairsSet.clear();forcedPairs.clear();
+      avoidManual.value='';forceManual.value='';
+      setForceUI(false);
+      summarizeAvoid();summarizeForce();
     });
 
     // Keep crisp on resize
