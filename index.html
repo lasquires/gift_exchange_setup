@@ -470,7 +470,7 @@
           </div>
           <div class="field">
             <label for="familiesBox">Families / participants</label>
-            <p class="field-note">One group per line. Family names are optional; separate people with commas.</p>
+            <p class="field-note">One group per line. Family names are optional; separate people with commas. Give participants unique names (e.g., Sam A. and Sam B.).</p>
             <textarea id="familiesBox" class="members" rows="8" placeholder="Smith: Alice, Bob, Carol&#10;Dave, Erin&#10;Mateo, Sofia, Lucia"></textarea>
           </div>
         </section>
@@ -877,12 +877,34 @@
       return families;
     }
 
+    // Check the roster before creating assignments: two people cannot share a name.
+    function findDuplicateParticipants(families) {
+      const names = new Map();
+      for (const name of Object.values(families).flat()) {
+        const key = nameKey(name);
+        if (!key) continue;
+        const match = names.get(key);
+        if (match) match.count++;
+        else names.set(key, { name, count: 1 });
+      }
+      return [...names.values()].filter(item => item.count > 1);
+    }
+
+    // Imported enforced pairs only constrain names explicitly entered as participants.
+    // Filtering here lets the organizer import pairs before entering the roster.
+    function participatingForcedPairs(families) {
+      const participants = new Set(Object.values(families).flat().map(nameKey));
+      return new Map([...forcedPairs].filter(([giver, recipient]) =>
+        participants.has(nameKey(giver)) && participants.has(nameKey(recipient))
+      ));
+    }
+
     // ---------- Assignment generation ----------
-    function forcedConflict(families,avoidSet,noIntra,noRecip){
+    function forcedConflict(families,avoidSet,noIntra,noRecip,forcedMap){
       const usedRecipients=new Set(),fixed=new Map(),familyOf=new Map();
       for(const [group,members] of Object.entries(families))
         for(const member of members)familyOf.set(nameKey(member),nameKey(group));
-      for(const [giver,recipient] of forcedPairs){
+      for(const [giver,recipient] of forcedMap){
         const g=nameKey(giver),r=nameKey(recipient);
         if(g===r)return giver+' cannot give to themselves.';
         if(usedRecipients.has(r))return recipient+' is assigned to multiple givers.';
@@ -898,14 +920,13 @@
     function generateAssignments(families, occasionStr, noIntra=true, noRecip=true, noRepeat=false,
                                  avoidSet=new Set(), forcedMap=new Map()) {
 
-      // One person per case-insensitive name; prefer the spelling entered in Setup.
+      // Only names in the participant roster can give or receive; never add from imports.
       const peopleByKey = new Map();
       const addPerson = name => {
         const key = nameKey(name);
         if (key && !peopleByKey.has(key)) peopleByKey.set(key, String(name).trim());
       };
       Object.values(families).flat().forEach(addPerson);
-      for (const [g,r] of forcedMap.entries()){ addPerson(g); addPerson(r); }
       const people = Array.from(peopleByKey.values());
       const displayName = name => peopleByKey.get(nameKey(name));
 
@@ -938,7 +959,7 @@
 
         for (const [rawG,rawR] of forcedMap.entries()){
           const g = displayName(rawG), r = displayName(rawR);
-          if (g === r) continue;
+          if (!g || !r || g === r) continue;
           assignments.set(g, r);
         }
 
@@ -968,7 +989,9 @@
         }
 
         for (const [g,r] of forcedMap.entries()){
-          if (assignments.get(displayName(g)) !== displayName(r)){ failed = true; break; }
+          const giver = displayName(g), recipient = displayName(r);
+          if (!giver || !recipient) continue;
+          if (assignments.get(giver) !== recipient){ failed = true; break; }
         }
         if (failed) continue;
 
@@ -1378,9 +1401,18 @@
       const occasion = (occasionInput.value.trim() || 'Gift_Exchange');
       const families = collectFamilies();
 
-      if (Object.keys(families).length === 0 && forcedPairs.size===0){
-        alert('Add families or import pre-assigned pairs first.'); return;
+      const duplicates = findDuplicateParticipants(families);
+      if (duplicates.length) {
+        const names = duplicates.map(({ name, count }) => name + ' (' + count + ' times)').join(', ');
+        alert('Duplicate participant name(s): ' + names +
+              '\nPlease give each person a unique name, such as Sam A. and Sam B. (using a middle or last initial).');
+        familiesBox.focus();
+        return;
       }
+      if (!Object.values(families).flat().length){
+        alert('Add participants before generating assignments.'); return;
+      }
+      const validForcedPairs = participatingForcedPairs(families);
 
       // Combine typed and imported exclusions.
       const exclusions=allAvoidPairs();
@@ -1389,7 +1421,7 @@
       // Flip logic: checkboxes mean "allow"; generator expects "forbid" booleans
       const noIntra = !intraInput.checked;
       const noRecip = !recipInput.checked;
-      const conflict=forcedConflict(families,exclusions,noIntra,noRecip);
+      const conflict=forcedConflict(families,exclusions,noIntra,noRecip,validForcedPairs);
       if(conflict){alert('Enforced pair conflict: '+conflict);return;}
 
       const assn = generateAssignments(
@@ -1399,7 +1431,7 @@
         noRecip,
         noRepeat,
         exclusions,
-        forcedPairs
+        validForcedPairs
       );
       if (!assn) return;
 
